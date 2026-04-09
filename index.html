@@ -1,46 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Esports Admin Panel | Tournament Manager</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Firebase Compat CDN -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-    <style>
-        * { font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif; }
-        body { background-color: #f2f2f7; }
-        .apple-card { background: #ffffff; box-shadow: 0 2px 20px rgba(0,0,0,0.06); border-radius: 20px; transition: all 0.2s ease; }
-        .sidebar-active { background-color: #007AFF10; color: #007AFF; border-left: 3px solid #007AFF; font-weight: 600; }
-        .dark body { background-color: #000000; }
-        .dark .apple-card { background: #1c1c1e; color: #ffffff; box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
-        .dark .sidebar { background: #111111; border-right-color: #2c2c2e; }
-        .btn-primary { background: #007AFF; color: white; border-radius: 12px; padding: 8px 16px; font-weight: 500; transition: 0.2s; cursor: pointer; }
-        .btn-primary:hover { opacity: 0.85; }
-        .btn-danger { background: #FF3B30; }
-        .btn-success { background: #34C759; }
-        .toast-notify { position: fixed; bottom: 24px; right: 24px; background: #1c1c1e; color: white; padding: 12px 20px; border-radius: 30px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        @media (max-width: 768px) {
-            .desktop-sidebar { display: none; }
-            .mobile-bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e5ea; z-index: 50; }
-            .dark .mobile-bottom-nav { background: #111; }
-            .main-content { padding-bottom: 80px; }
-        }
-        @media (min-width: 769px) { .mobile-bottom-nav { display: none; } }
-        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-content { max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin | Hamro Tournament</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif;
+      background: #f2f2f7;
+    }
+    body.dark { background: #000; color: #fff; }
+    .ios-card {
+      background: #fff; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    body.dark .ios-card { background: #1c1c1e; }
+    .ios-btn {
+      border-radius: 12px; transition: all 0.2s; font-weight: 600; cursor: pointer;
+    }
+    .ios-btn:active { transform: scale(0.98); }
+    .ios-btn-primary { background: #007AFF; color: white; }
+    .ios-btn-success { background: #34C759; color: white; }
+    .ios-btn-danger { background: #FF3B30; color: white; }
+    .ios-input {
+      border-radius: 10px; border: 1px solid #e5e5ea; padding: 12px 16px; width: 100%; font-size: 16px;
+    }
+    body.dark .ios-input { background: #2c2c2e; border-color: #3a3a3c; color: white; }
+    .status-pending { background: #FF9500; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+    .status-approved { background: #34C759; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+    .status-rejected { background: #FF3B30; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
+    .spinner {
+      width: 30px; height: 30px; border: 3px solid #e5e5ea; border-top-color: #007AFF;
+      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tab-btn.active { background: #007AFF !important; color: white !important; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.9); color: white; padding: 10px 20px;
+      border-radius: 25px; z-index: 9999; font-size: 14px; animation: fadeInUp 0.3s ease;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+  </style>
 </head>
-<body>
+<body class="p-4">
+  <div class="max-w-5xl mx-auto">
+    <!-- Admin Login -->
+    <div id="admin-login" class="ios-card p-6 max-w-md mx-auto mt-10">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 bg-gradient-to-r from-[#007AFF] to-[#AF52DE] rounded-2xl flex items-center justify-center mx-auto mb-3">
+          <span class="text-2xl">🔐</span>
+        </div>
+        <h2 class="text-xl font-bold">Admin Access</h2>
+        <p class="text-xs text-gray-500">Hamro Tournament Dashboard</p>
+      </div>
+      <input type="email" id="admin-email" placeholder="Admin Email" class="ios-input mb-3" required>
+      <input type="password" id="admin-pass" placeholder="Password" class="ios-input mb-4" required>
+      <button id="btn-admin-login" class="ios-btn ios-btn-primary w-full py-3">Login</button>
+      <p id="login-error" class="text-red-500 text-xs mt-2 text-center hidden"></p>
+    </div>
 
-<div id="app"></div>
+    <!-- Admin Dashboard (Hidden Until Login) -->
+    <div id="admin-dashboard" class="hidden space-y-4">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-r from-[#007AFF] to-[#AF52DE] rounded-xl flex items-center justify-center">
+            <span class="text-white font-bold">⚙️</span>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg">Admin Dashboard</h1>
+            <p class="text-xs text-gray-500" id="admin-email-display">admin@hamro.com</p>
+          </div>
+        </div>
+        <button id="btn-logout" class="ios-btn ios-btn-danger px-4 py-2 text-sm">Logout</button>
+      </div>
 
-<script>
-    // ============ FIREBASE CONFIG (REPLACE WITH YOURS) ============
-    const firebaseConfig = {
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="ios-card p-4 text-center">
+          <div class="text-2xl font-bold text-blue-500" id="stat-users">0</div>
+          <div class="text-xs text-gray-500">Total Users</div>
+        </div>
+        <div class="ios-card p-4 text-center">
+          <div class="text-2xl font-bold text-green-500" id="stat-deposits">0</div>
+          <div class="text-xs text-gray-500">Pending Deposits</div>
+        </div>
+        <div class="ios-card p-4 text-center">
+          <div class="text-2xl font-bold text-orange-500" id="stat-withdrawals">0</div>
+          <div class="text-xs text-gray-500">Pending Withdrawals</div>
+        </div>
+        <div class="ios-card p-4 text-center">
+          <div class="text-2xl font-bold text-purple-500" id="stat-tournaments">0</div>
+          <div class="text-xs text-gray-500">Active Tournaments</div>
+        </div>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="flex gap-2 overflow-x-auto pb-2 mb-4">
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-[#007AFF] text-white" data-tab="deposits">💰 Deposits</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="withdrawals">💸 Withdrawals</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="tournaments">🏆 Tournaments</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="users">👥 Users</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="results">📊 Results</button>
+      </div>
+
+      <!-- Deposits Tab -->
+      <div id="tab-deposits" class="tab-content">
+        <div class="ios-card p-4">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold">Pending Deposit Requests</h3>
+            <button onclick="loadDeposits()" class="text-[#007AFF] text-xs">🔄 Refresh</button>
+          </div>
+          <div id="deposits-list" class="space-y-3">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Withdrawals Tab -->
+      <div id="tab-withdrawals" class="tab-content hidden">
+        <div class="ios-card p-4">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold">Pending Withdrawal Requests</h3>
+            <button onclick="loadWithdrawals()" class="text-[#007AFF] text-xs">🔄 Refresh</button>
+          </div>
+          <div id="withdrawals-list" class="space-y-3">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tournaments Tab -->
+      <div id="tab-tournaments" class="tab-content hidden">
+        <!-- Create Tournament Form -->
+        <div class="ios-card p-4 mb-4">
+          <h3 class="font-bold mb-3">➕ Create New Tournament</h3>
+          <form id="create-tournament-form" class="space-y-3">
+            <input type="text" id="t-title" placeholder="Tournament Title" class="ios-input" required>
+            <div class="grid grid-cols-2 gap-3">
+              <input type="number" id="t-entry" placeholder="Entry Fee (₹)" class="ios-input" required>
+              <input type="number" id="t-prize" placeholder="Prize Pool (₹)" class="ios-input" required>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <input type="number" id="t-max" placeholder="Max Players" class="ios-input" value="50" required>
+              <input type="text" id="t-game" placeholder="Game (e.g., Free Fire)" class="ios-input" value="Free Fire" required>
+            </div>
+            <input type="datetime-local" id="t-start" class="ios-input" required>
+            <textarea id="t-rules" placeholder="Tournament Rules (optional)" class="ios-input" rows="2"></textarea>
+            <button type="submit" class="ios-btn ios-btn-success w-full py-3">Create Tournament</button>
+          </form>
+        </div>
+        <!-- Manage Tournaments -->
+        <div class="ios-card p-4">
+          <h3 class="font-bold mb-3">Manage Tournaments</h3>
+          <div id="tournaments-list" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="tab-users" class="tab-content hidden">
+        <div class="ios-card p-4">
+          <h3 class="font-bold mb-3">Search Users</h3>
+          <div class="flex gap-2 mb-3">
+            <input type="text" id="user-search" placeholder="Email, UID, or Username" class="ios-input flex-1">
+            <button id="btn-search-user" class="ios-btn ios-btn-primary px-4">Search</button>
+          </div>
+          <div id="user-result" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- Results Tab -->
+      <div id="tab-results" class="tab-content hidden">
+        <div class="ios-card p-4">
+          <h3 class="font-bold mb-3">Verify Match Results</h3>
+          <div id="results-list" class="space-y-3">
+            <p class="text-sm text-gray-500">No pending result submissions</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Room ID Distribution Modal -->
+  <div id="roomModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+    <div class="ios-card p-6 w-full max-w-md mx-4">
+      <h3 class="font-bold mb-3">🎮 Distribute Room Credentials</h3>
+      <p class="text-sm text-gray-500 mb-4" id="room-tournament-title"></p>
+      <input type="text" id="room-id" placeholder="Room ID" class="ios-input mb-3" required>
+      <input type="text" id="room-pass" placeholder="Room Password" class="ios-input mb-4" required>
+      <div class="flex gap-2">
+        <button onclick="sendRoomCredentials()" class="ios-btn ios-btn-primary flex-1 py-2">Send to Players</button>
+        <button onclick="closeRoomModal()" class="ios-btn bg-gray-300 flex-1 py-2">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // Firebase Config (USE SAME AS USER APP)
+    // =========================
+const firebaseConfig = {
   apiKey: "AIzaSyAPEWF1t1YKFG2-hrzY7IWBaumM4xyLwOs",
   authDomain: "hamro-tournament-09.firebaseapp.com",
   databaseURL: "https://hamro-tournament-09-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -50,578 +217,546 @@
   appId: "1:167377472023:web:ef825e192f564c5ccdea52"
 };
 
-    
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-    
-    // Global state
-    let currentUser = null;
-    let currentSection = 'dashboard';
-    let darkMode = localStorage.getItem('adminDarkMode') === 'true';
-    let realtimeUnsubscribes = [];
-    
-    // Helper functions
-    function showToast(message, type = 'info') {
-        const toast = document.createElement('div');
-        toast.className = 'toast-notify';
-        toast.innerText = message;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+
+    let currentAdmin = null;
+    let selectedTournamentForRoom = null;
+
+    // =========================
+    // Helpers
+    // =========================
+    function showToast(msg, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.style.background = type === 'error' ? '#FF3B30' : '#34C759';
+      toast.textContent = msg;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
     }
-    
-    async function logActivity(action, details) {
-        if (!currentUser) return;
-        try {
-            await db.collection('activityLogs').add({
-                adminEmail: currentUser.email,
-                action,
-                details,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-        } catch(e) { console.warn(e); }
+
+    function formatTime(ts) {
+      if (!ts) return 'N/A';
+      const date = ts.toDate ? ts.toDate() : new Date(ts);
+      return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
-    
-    // Auth state listener
+
+    // =========================
+    // Auth & Access Control
+    // =========================
+    document.getElementById('btn-admin-login').onclick = async () => {
+      const email = document.getElementById('admin-email').value;
+      const pass = document.getElementById('admin-pass').value;
+      const errorEl = document.getElementById('login-error');
+      errorEl.classList.add('hidden');
+      
+      try {
+        const cred = await auth.signInWithEmailAndPassword(email, pass);
+        const userDoc = await db.collection('users').doc(cred.user.uid).get();
+        const userData = userDoc.data();
+        
+        if (!userData || userData.role !== 'admin') {
+          await auth.signOut();
+          errorEl.textContent = 'Access denied: Admin role required';
+          errorEl.classList.remove('hidden');
+          return;
+        }
+        
+        currentAdmin = cred.user;
+        document.getElementById('admin-email-display').textContent = email;
+        document.getElementById('admin-login').classList.add('hidden');
+        document.getElementById('admin-dashboard').classList.remove('hidden');
+        
+        // Load stats & default tab
+        loadStats();
+        loadDeposits();
+      } catch (e) {
+        errorEl.textContent = e.message;
+        errorEl.classList.remove('hidden');
+      }
+    };
+
+    document.getElementById('btn-logout').onclick = () => {
+      auth.signOut();
+      location.reload();
+    };
+
+    // Check auth state on load
     auth.onAuthStateChanged(async (user) => {
-        if (user && user.email === 'admin123@gmail.com') {
-            currentUser = user;
-            renderAdminApp();
+      if (user) {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        if (userDoc.data()?.role === 'admin') {
+          currentAdmin = user;
+          document.getElementById('admin-login').classList.add('hidden');
+          document.getElementById('admin-dashboard').classList.remove('hidden');
+          document.getElementById('admin-email-display').textContent = user.email;
+          loadStats();
+          loadDeposits();
         } else {
-            if (user) await auth.signOut();
-            currentUser = null;
-            renderLoginScreen();
+          auth.signOut();
+          showToast('Admin access required', 'error');
         }
+      }
     });
-    
-    function renderLoginScreen() {
-        document.getElementById('app').innerHTML = `
-            <div class="min-h-screen flex items-center justify-center bg-[#f2f2f7] dark:bg-black p-4">
-                <div class="apple-card w-full max-w-md p-8">
-                    <div class="text-center mb-6">
-                        <div class="text-5xl mb-2">🎮</div>
-                        <h1 class="text-2xl font-bold">Admin Panel</h1>
-                        <p class="text-gray-500 text-sm">Esports Tournament Manager</p>
-                    </div>
-                    <form id="loginForm">
-                        <div class="mb-4">
-                            <input type="email" id="loginEmail" class="w-full p-3 border border-gray-200 rounded-xl dark:bg-gray-800" placeholder="admin123@gmail.com" required>
-                        </div>
-                        <div class="mb-6">
-                            <input type="password" id="loginPassword" class="w-full p-3 border border-gray-200 rounded-xl dark:bg-gray-800" placeholder="Password" required>
-                        </div>
-                        <button type="submit" class="w-full btn-primary py-3">Sign In</button>
-                        <div id="loginError" class="text-red-500 text-sm mt-3 text-center"></div>
-                    </form>
-                </div>
-            </div>
-        `;
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+
+    // =========================
+    // Tab Navigation
+    // =========================
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.classList.remove('active', 'bg-[#007AFF]', 'text-white');
+          b.classList.add('bg-gray-200');
+        });
+        btn.classList.add('active', 'bg-[#007AFF]', 'text-white');
+        btn.classList.remove('bg-gray-200');
+        
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+        
+        if (btn.dataset.tab === 'withdrawals') loadWithdrawals();
+        if (btn.dataset.tab === 'tournaments') loadTournamentsAdmin();
+        if (btn.dataset.tab === 'results') loadResults();
+      };
+    });
+
+    // =========================
+    // Stats Loading
+    // =========================
+    async function loadStats() {
+      try {
+        const [usersSnap, depositsSnap, withdrawalsSnap, tournamentsSnap] = await Promise.all([
+          db.collection('users').count().get(),
+          db.collection('deposits').where('status', '==', 'pending').count().get(),
+          db.collection('withdrawals').where('status', '==', 'pending').count().get(),
+          db.collection('tournaments').where('status', 'in', ['upcoming', 'playing']).count().get()
+        ]);
+        document.getElementById('stat-users').textContent = usersSnap.data().count || 0;
+        document.getElementById('stat-deposits').textContent = depositsSnap.data().count || 0;
+        document.getElementById('stat-withdrawals').textContent = withdrawalsSnap.data().count || 0;
+        document.getElementById('stat-tournaments').textContent = tournamentsSnap.data().count || 0;
+      } catch (e) {
+        console.error('Stats error:', e);
+      }
+    }
+
+    // =========================
+    // Deposits Management
+    // =========================
+    async function loadDeposits() {
+      const list = document.getElementById('deposits-list');
+      list.innerHTML = '<div class="spinner"></div>';
+      
+      try {
+        const snap = await db.collection('deposits')
+          .where('status', '==', 'pending')
+          .orderBy('createdAt', 'desc')
+          .limit(20)
+          .get();
+        
+        if (snap.empty) {
+          list.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">No pending deposits</p>';
+          return;
+        }
+        
+        list.innerHTML = '';
+        for (const doc of snap.docs) {
+          const d = doc.data();
+          const userDoc = await db.collection('users').doc(d.userId).get();
+          const userData = userDoc.data() || {};
+          
+          list.innerHTML += `
+            <div class="ios-card p-3 flex justify-between items-center">
+              <div class="flex-1">
+                <div class="font-bold">₹${d.amount}</div>
+                <div class="text-xs text-gray-500">User: ${userData.username || d.userId.slice(0,8)}...</div>
+                <div class="text-xs text-gray-400">Txn: ${d.transactionId}</div>
+                <div class="text-xs text-gray-400">${formatTime(d.createdAt)}</div>
+              </div>
+              <div class="flex gap-2">
+                <button class="approve-deposit ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg" 
+                        data-id="${doc.id}" data-uid="${d.userId}" data-amt="${d.amount}">✅ Approve</button>
+                <button class="reject-deposit ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg" 
+                        data-id="${doc.id}">❌ Reject</button>
+              </div>
+            </div>`;
+        }
+        
+        // Attach event listeners
+        document.querySelectorAll('.approve-deposit').forEach(btn => {
+          btn.onclick = async () => {
+            if (!confirm(`Approve ₹${btn.dataset.amt} deposit for user ${btn.dataset.uid.slice(0,8)}?`)) return;
             try {
-                const cred = await auth.signInWithEmailAndPassword(email, password);
-                if (cred.user.email !== 'admin123@gmail.com') {
-                    await auth.signOut();
-                    throw new Error('Access Denied');
-                }
-            } catch (err) {
-                document.getElementById('loginError').innerText = 'Invalid credentials or non-admin account';
-            }
-        });
-    }
-    
-    function cleanupListeners() { realtimeUnsubscribes.forEach(unsub => unsub()); realtimeUnsubscribes = []; }
-    
-    function renderAdminApp() {
-        const navItems = [
-            { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-            { id: 'tournaments', label: 'Tournaments', icon: '🏆' },
-            { id: 'wallet', label: 'Wallet', icon: '💰' },
-            { id: 'users', label: 'Users', icon: '👥' },
-            { id: 'activityLog', label: 'Activity Log', icon: '📋' }
-        ];
-        
-        document.getElementById('app').innerHTML = `
-            <div class="flex min-h-screen ${darkMode ? 'dark' : ''}">
-                <div class="desktop-sidebar w-64 fixed inset-y-0 left-0 bg-white dark:bg-[#111] border-r border-[#e5e5ea] dark:border-[#2c2c2e] flex flex-col">
-                    <div class="p-6 text-xl font-bold flex items-center gap-2">🎮 <span>Esports Admin</span></div>
-                    <div class="flex-1 overflow-y-auto py-4">
-                        ${navItems.map(item => `
-                            <div data-nav="${item.id}" class="nav-item flex items-center gap-3 px-6 py-3 mx-2 rounded-xl cursor-pointer ${currentSection === item.id ? 'sidebar-active bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100'}" style="border-left-width: ${currentSection === item.id ? '3px' : '0px'};">
-                                <span class="text-xl">${item.icon}</span> <span>${item.label}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <div class="p-4 border-t border-gray-200 dark:border-gray-800">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm text-gray-500">Dark Mode</span>
-                            <button id="darkModeToggle" class="w-10 h-5 rounded-full bg-gray-300 relative"><span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-5' : ''}"></span></button>
-                        </div>
-                        <button id="logoutBtn" class="w-full mt-2 py-2 bg-red-500/10 text-red-600 rounded-xl">🔓 Logout</button>
-                    </div>
-                </div>
-                <div class="mobile-bottom-nav fixed bottom-0 w-full bg-white dark:bg-[#111] border-t py-2 px-4 justify-around">
-                    ${navItems.slice(0,5).map(item => `<button data-mobile-nav="${item.id}" class="flex flex-col items-center text-xs ${currentSection === item.id ? 'text-blue-600' : 'text-gray-500'}"><span class="text-xl">${item.icon}</span><span>${item.label}</span></button>`).join('')}
-                </div>
-                <div class="main-content flex-1 ml-0 md:ml-64 p-6">
-                    <div id="sectionContent" class="max-w-7xl mx-auto">Loading...</div>
-                </div>
-            </div>
-        `;
-        
-        document.querySelectorAll('.nav-item').forEach(el => {
-            el.addEventListener('click', () => changeSection(el.dataset.nav));
-        });
-        document.querySelectorAll('[data-mobile-nav]').forEach(el => {
-            el.addEventListener('click', () => changeSection(el.dataset.mobileNav));
-        });
-        document.getElementById('darkModeToggle')?.addEventListener('click', () => {
-            darkMode = !darkMode;
-            localStorage.setItem('adminDarkMode', darkMode);
-            renderAdminApp();
-        });
-        document.getElementById('logoutBtn')?.addEventListener('click', async () => { await auth.signOut(); renderLoginScreen(); });
-        
-        loadSection(currentSection);
-    }
-    
-    function changeSection(section) {
-        currentSection = section;
-        renderAdminApp();
-    }
-    
-    async function loadSection(section) {
-        const container = document.getElementById('sectionContent');
-        if (!container) return;
-        cleanupListeners();
-        switch(section) {
-            case 'dashboard': await renderDashboard(container); break;
-            case 'tournaments': await renderTournaments(container); break;
-            case 'wallet': await renderWallet(container); break;
-            case 'users': await renderUsers(container); break;
-            case 'activityLog': await renderActivityLog(container); break;
-            default: container.innerHTML = '<div class="apple-card p-6">Section coming soon</div>';
-        }
-    }
-    
-    // ============ DASHBOARD ============
-    async function renderDashboard(container) {
-        const tournamentsSnap = await db.collection('tournaments').get();
-        const usersSnap = await db.collection('users').get();
-        const withdrawalsSnap = await db.collection('withdrawals').where('status', '==', 'pending').get();
-        
-        container.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div class="apple-card p-6"><div class="text-3xl mb-2">🏆</div><div class="text-2xl font-bold">${tournamentsSnap.size}</div><div>Total Tournaments</div></div>
-                <div class="apple-card p-6"><div class="text-3xl mb-2">👥</div><div class="text-2xl font-bold">${usersSnap.size}</div><div>Total Users</div></div>
-                <div class="apple-card p-6"><div class="text-3xl mb-2">💰</div><div class="text-2xl font-bold">${withdrawalsSnap.size}</div><div>Pending Withdrawals</div></div>
-            </div>
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
-                <div class="flex gap-4 flex-wrap">
-                    <button onclick="window.dispatchEvent(new CustomEvent('openCreateTournament'))" class="btn-primary">➕ Create Tournament</button>
-                    <button onclick="changeSection('wallet')" class="btn-primary bg-green-500">💰 Manage Withdrawals</button>
-                </div>
-            </div>
-        `;
-        window.addEventListener('openCreateTournament', () => showCreateTournamentModal(), { once: true });
-    }
-    
-    // ============ TOURNAMENTS (CREATE + LIST) ============
-    async function renderTournaments(container) {
-        const tournaments = await db.collection('tournaments').orderBy('createdAt', 'desc').get();
-        container.innerHTML = `
-            <div class="flex justify-between items-center mb-6">
-                <h1 class="text-2xl font-bold">Tournaments</h1>
-                <button onclick="window.showCreateTournamentModal()" class="btn-primary">➕ Create Tournament</button>
-            </div>
-            <div id="tournamentsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-        `;
-        
-        const listDiv = document.getElementById('tournamentsList');
-        if (tournaments.empty) {
-            listDiv.innerHTML = '<div class="apple-card p-6 text-center text-gray-500">No tournaments yet. Create your first tournament!</div>';
-        } else {
-            listDiv.innerHTML = tournaments.docs.map(doc => {
-                const data = doc.data();
-                return `
-                    <div class="apple-card p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 class="font-bold text-lg">${data.title || 'Unnamed Tournament'}</h3>
-                                <p class="text-sm text-gray-500">${data.gameType || 'Game'}</p>
-                            </div>
-                            <span class="px-2 py-1 rounded-full text-xs ${data.status === 'upcoming' ? 'bg-blue-100 text-blue-700' : data.status === 'playing' ? 'bg-green-100 text-green-700' : 'bg-gray-100'}">${data.status || 'upcoming'}</span>
-                        </div>
-                        <div class="space-y-2 text-sm">
-                            <div>💰 Entry: ₹${data.entryFee || 0}</div>
-                            <div>🏆 Prize: ₹${data.prizePool || 0}</div>
-                            <div>👥 Max: ${data.maxPlayers || 0} players</div>
-                            <div>📅 ${data.startTime ? new Date(data.startTime).toLocaleDateString() : 'TBD'}</div>
-                        </div>
-                        <div class="mt-3 pt-3 border-t flex gap-2">
-                            <button onclick="window.deleteTournament('${doc.id}')" class="text-red-500 text-sm">Delete</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        window.showCreateTournamentModal = showCreateTournamentModal;
-        window.deleteTournament = async (id) => {
-            if (confirm('Delete this tournament?')) {
-                await db.collection('tournaments').doc(id).delete();
-                showToast('Tournament deleted');
-                await logActivity('Deleted tournament', { id });
-                renderTournaments(container);
-            }
-        };
-    }
-    
-    function showCreateTournamentModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">Create Tournament</h2>
-                <form id="createTournamentForm">
-                    <input type="text" id="tourneyTitle" placeholder="Tournament Title" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <input type="text" id="gameType" placeholder="Game Type (e.g., BGMI, FreeFire)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <input type="number" id="entryFee" placeholder="Entry Fee (₹)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <input type="number" id="prizePool" placeholder="Prize Pool (₹)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <input type="number" id="maxPlayers" placeholder="Max Players" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <input type="datetime-local" id="startTime" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <textarea id="description" placeholder="Description (optional)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" rows="3"></textarea>
-                    <div class="flex gap-3">
-                        <button type="submit" class="btn-primary flex-1">Create Tournament</button>
-                        <button type="button" onclick="this.closest('.modal').remove()" class="btn-primary bg-gray-500 flex-1">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        `;
-        document.body.appendChild(modal);
-        
-        document.getElementById('createTournamentForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const tournamentData = {
-                title: document.getElementById('tourneyTitle').value,
-                gameType: document.getElementById('gameType').value,
-                entryFee: parseInt(document.getElementById('entryFee').value),
-                prizePool: parseInt(document.getElementById('prizePool').value),
-                maxPlayers: parseInt(document.getElementById('maxPlayers').value),
-                startTime: new Date(document.getElementById('startTime').value),
-                description: document.getElementById('description').value,
-                status: 'upcoming',
-                registeredPlayers: [],
+              // Update deposit status
+              await db.collection('deposits').doc(btn.dataset.id).update({ status: 'approved' });
+              
+              // Update user wallet
+              await db.collection('users').doc(btn.dataset.uid).update({ 
+                wallet: firebase.firestore.FieldValue.increment(parseInt(btn.dataset.amt)),
+                totalDeposited: firebase.firestore.FieldValue.increment(parseInt(btn.dataset.amt))
+              });
+              
+              // Log transaction
+              await db.collection('transactions').add({
+                userId: btn.dataset.uid,
+                amount: parseInt(btn.dataset.amt),
+                type: 'credit',
+                description: 'Deposit Approved via eSewa',
+                status: 'completed',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            await db.collection('tournaments').add(tournamentData);
-            showToast('Tournament created successfully!');
-            await logActivity('Created tournament', { title: tournamentData.title });
-            modal.remove();
-            if (currentSection === 'tournaments') {
-                const container = document.getElementById('sectionContent');
-                await renderTournaments(container);
+              });
+              
+              showToast('Deposit approved & wallet updated!');
+              loadDeposits();
+              loadStats();
+            } catch (e) {
+              showToast('Error: ' + e.message, 'error');
             }
+          };
         });
-    }
-    
-    // ============ WALLET & WITHDRAWALS ============
-    async function renderWallet(container) {
-        // Get pending withdrawals
-        const withdrawals = await db.collection('withdrawals').where('status', '==', 'pending').get();
-        const approvedWithdrawals = await db.collection('withdrawals').where('status', '==', 'approved').limit(5).get();
         
-        container.innerHTML = `
-            <h1 class="text-2xl font-bold mb-6">💰 Wallet Management</h1>
-            
-            <div class="apple-card p-6 mb-6">
-                <h2 class="text-xl font-bold mb-4">⏳ Pending Withdrawals (${withdrawals.size})</h2>
-                <div id="pendingWithdrawalsList" class="space-y-3"></div>
-            </div>
-            
-            <div class="apple-card p-6 mb-6">
-                <h2 class="text-xl font-bold mb-4">✅ Recent Approvals</h2>
-                <div id="approvedWithdrawalsList" class="space-y-3"></div>
-            </div>
-            
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">💸 Adjust User Wallet</h2>
-                <form id="adjustWalletForm">
-                    <input type="text" id="adjustUserId" placeholder="User ID (email or UID)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <input type="number" id="adjustAmount" placeholder="Amount (₹)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <select id="adjustType" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800">
-                        <option value="add">➕ Add Funds</option>
-                        <option value="deduct">➖ Deduct Funds</option>
-                    </select>
-                    <input type="text" id="adjustReason" placeholder="Reason" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
-                    <button type="submit" class="btn-primary w-full">Process Adjustment</button>
-                </form>
-            </div>
-        `;
-        
-        // Render pending withdrawals
-        const pendingDiv = document.getElementById('pendingWithdrawalsList');
-        if (withdrawals.empty) {
-            pendingDiv.innerHTML = '<div class="text-gray-500 text-center py-4">No pending withdrawals</div>';
-        } else {
-            pendingDiv.innerHTML = withdrawals.docs.map(doc => {
-                const data = doc.data();
-                return `
-                    <div class="border rounded-xl p-4 flex justify-between items-center">
-                        <div>
-                            <div class="font-bold">User: ${data.userId || 'Unknown'}</div>
-                            <div class="text-2xl font-bold text-green-600">₹${data.amount || 0}</div>
-                            <div class="text-xs text-gray-500">Requested: ${data.requestedAt?.toDate?.()?.toLocaleString() || 'Recently'}</div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="window.approveWithdrawal('${doc.id}', ${data.amount}, '${data.userId}')" class="btn-success px-4 py-2 rounded-lg">✅ Approve</button>
-                            <button onclick="window.rejectWithdrawal('${doc.id}', '${data.userId}')" class="btn-danger px-4 py-2 rounded-lg">❌ Reject</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        // Render approved withdrawals
-        const approvedDiv = document.getElementById('approvedWithdrawalsList');
-        if (approvedWithdrawals.empty) {
-            approvedDiv.innerHTML = '<div class="text-gray-500 text-center py-4">No recent approvals</div>';
-        } else {
-            approvedDiv.innerHTML = approvedWithdrawals.docs.map(doc => {
-                const data = doc.data();
-                return `
-                    <div class="border rounded-xl p-3 flex justify-between">
-                        <span>${data.userId}</span>
-                        <span class="font-bold text-green-600">₹${data.amount}</span>
-                        <span class="text-xs text-gray-500">${data.approvedAt?.toDate?.()?.toLocaleString() || 'Recently'}</span>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        // Wallet adjustment handler
-        document.getElementById('adjustWalletForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const userId = document.getElementById('adjustUserId').value;
-            const amount = parseInt(document.getElementById('adjustAmount').value);
-            const type = document.getElementById('adjustType').value;
-            const reason = document.getElementById('adjustReason').value;
-            
-            // Get user document
-            const userQuery = await db.collection('users').where('email', '==', userId).get();
-            let userDoc;
-            if (!userQuery.empty) {
-                userDoc = userQuery.docs[0];
-            } else {
-                const byId = await db.collection('users').doc(userId).get();
-                if (byId.exists) userDoc = byId;
-            }
-            
-            if (!userDoc) {
-                showToast('User not found');
-                return;
-            }
-            
-            const currentBalance = userDoc.data().wallet || 0;
-            let newBalance = currentBalance;
-            if (type === 'add') {
-                newBalance = currentBalance + amount;
-            } else {
-                if (currentBalance < amount) {
-                    showToast('Insufficient balance');
-                    return;
-                }
-                newBalance = currentBalance - amount;
-            }
-            
-            await db.collection('users').doc(userDoc.id).update({ wallet: newBalance });
-            await db.collection('walletTransactions').add({
-                userId: userDoc.id,
-                amount: type === 'add' ? amount : -amount,
-                type,
-                reason,
-                adminEmail: currentUser.email,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            showToast(`Wallet ${type === 'add' ? 'credited' : 'debited'} by ₹${amount}`);
-            await logActivity(`Wallet ${type}`, { userId: userDoc.id, amount, reason });
-            document.getElementById('adjustWalletForm').reset();
-        });
-    }
-    
-    // Global functions for withdrawal actions
-    window.approveWithdrawal = async (withdrawalId, amount, userId) => {
-        if (confirm(`Approve withdrawal of ₹${amount}?`)) {
-            await db.collection('withdrawals').doc(withdrawalId).update({
-                status: 'approved',
-                approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                approvedBy: currentUser.email
-            });
-            showToast('Withdrawal approved');
-            await logActivity('Approved withdrawal', { withdrawalId, amount, userId });
-            // Refresh wallet section
-            if (currentSection === 'wallet') {
-                const container = document.getElementById('sectionContent');
-                await renderWallet(container);
-            }
-        }
-    };
-    
-    window.rejectWithdrawal = async (withdrawalId, userId) => {
-        if (confirm('Reject this withdrawal?')) {
-            await db.collection('withdrawals').doc(withdrawalId).update({
+        document.querySelectorAll('.reject-deposit').forEach(btn => {
+          btn.onclick = async () => {
+            if (!confirm('Reject this deposit request?')) return;
+            try {
+              await db.collection('deposits').doc(btn.dataset.id).update({ status: 'rejected' });
+              await db.collection('transactions').add({
+                userId: btn.dataset.uid,
+                amount: parseInt(btn.dataset.amt),
+                type: 'credit',
+                description: 'Deposit Rejected',
                 status: 'rejected',
-                rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                rejectedBy: currentUser.email
-            });
-            
-            // Refund the amount back to user wallet
-            const userQuery = await db.collection('users').where('email', '==', userId).get();
-            if (!userQuery.empty) {
-                const userDoc = userQuery.docs[0];
-                const currentBalance = userDoc.data().wallet || 0;
-                const withdrawalData = (await db.collection('withdrawals').doc(withdrawalId).get()).data();
-                await db.collection('users').doc(userDoc.id).update({ 
-                    wallet: currentBalance + (withdrawalData?.amount || 0) 
-                });
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              showToast('Deposit rejected');
+              loadDeposits();
+            } catch (e) {
+              showToast('Error: ' + e.message, 'error');
             }
-            
-            showToast('Withdrawal rejected and amount refunded');
-            await logActivity('Rejected withdrawal', { withdrawalId, userId });
-            if (currentSection === 'wallet') {
-                const container = document.getElementById('sectionContent');
-                await renderWallet(container);
-            }
-        }
-    };
-    
-    // ============ USERS ============
-    async function renderUsers(container) {
-        const users = await db.collection('users').limit(20).get();
-        container.innerHTML = `
-            <h1 class="text-2xl font-bold mb-6">👥 User Management</h1>
-            <div class="apple-card p-6">
-                <input type="text" id="searchUser" placeholder="Search by email or UID..." class="w-full p-3 border rounded-xl mb-4 dark:bg-gray-800">
-                <div id="usersList" class="space-y-3"></div>
-            </div>
-        `;
-        
-        const usersList = document.getElementById('usersList');
-        if (users.empty) {
-            usersList.innerHTML = '<div class="text-gray-500 text-center py-4">No users found. Create sample users in Firebase.</div>';
-        } else {
-            usersList.innerHTML = users.docs.map(doc => {
-                const data = doc.data();
-                return `
-                    <div class="border rounded-xl p-4">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="font-bold">${data.email || doc.id}</div>
-                                <div class="text-sm text-gray-500">Wallet: ₹${data.wallet || 0}</div>
-                                <div class="text-xs text-gray-400">UID: ${doc.id.substring(0, 12)}...</div>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="window.banUser('${doc.id}')" class="px-3 py-1 bg-red-500 text-white rounded-lg text-sm">Ban</button>
-                                <button onclick="window.adjustUserWallet('${doc.id}', ${data.wallet || 0})" class="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm">Adjust Wallet</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        window.banUser = async (userId) => {
-            if (confirm('Ban this user?')) {
-                await db.collection('users').doc(userId).update({ banned: true, bannedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                showToast('User banned');
-                await logActivity('Banned user', { userId });
-            }
-        };
-        
-        window.adjustUserWallet = (userId, currentBalance) => {
-            const amount = prompt(`Current balance: ₹${currentBalance}\nEnter amount to add (use - for deduction):`);
-            if (amount) {
-                const numAmount = parseInt(amount);
-                db.collection('users').doc(userId).update({ wallet: currentBalance + numAmount });
-                showToast(`Wallet updated by ₹${numAmount}`);
-            }
-        };
-        
-        document.getElementById('searchUser').addEventListener('input', (e) => {
-            const search = e.target.value.toLowerCase();
-            const items = document.querySelectorAll('#usersList > div');
-            items.forEach(item => {
-                const text = item.innerText.toLowerCase();
-                item.style.display = text.includes(search) ? 'block' : 'none';
-            });
+          };
         });
+      } catch (e) {
+        list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+      }
     }
-    
-    // ============ ACTIVITY LOG ============
-    async function renderActivityLog(container) {
-        const logs = await db.collection('activityLogs').orderBy('timestamp', 'desc').limit(50).get();
-        container.innerHTML = `
-            <h1 class="text-2xl font-bold mb-6">📋 Activity Log</h1>
-            <div class="apple-card p-6">
-                <div id="logsList" class="space-y-2 max-h-[600px] overflow-y-auto">
-                    ${logs.empty ? '<div class="text-gray-500 text-center py-4">No activity logs yet</div>' : 
-                        logs.docs.map(doc => {
-                            const data = doc.data();
-                            return `
-                                <div class="border-b pb-2 text-sm">
-                                    <span class="font-medium">${data.adminEmail}</span> - 
-                                    <span>${data.action}</span>
-                                    <div class="text-xs text-gray-500">${data.timestamp?.toDate?.()?.toLocaleString() || 'Just now'}</div>
-                                    ${data.details ? `<div class="text-xs text-gray-400 mt-1">${JSON.stringify(data.details)}</div>` : ''}
-                                </div>
-                            `;
-                        }).join('')
-                    }
-                </div>
-            </div>
-        `;
-    }
-    
-    // Helper to create sample data for testing
-    async function createSampleData() {
-        // Check if we need sample data
-        const usersCheck = await db.collection('users').limit(1).get();
-        if (usersCheck.empty) {
-            await db.collection('users').add({ email: 'player1@example.com', wallet: 5000, createdAt: new Date() });
-            await db.collection('users').add({ email: 'player2@example.com', wallet: 3000, createdAt: new Date() });
-            
-            await db.collection('withdrawals').add({
-                userId: 'player1@example.com',
-                amount: 1000,
-                status: 'pending',
-                requestedAt: new Date()
-            });
-            
-            await db.collection('tournaments').add({
-                title: 'Sample Tournament',
-                gameType: 'BGMI',
-                entryFee: 100,
-                prizePool: 10000,
-                maxPlayers: 50,
-                status: 'upcoming',
-                createdAt: new Date()
-            });
-            
-            showToast('Sample data created!');
+
+    // =========================
+    // Withdrawals Management
+    // =========================
+    async function loadWithdrawals() {
+      const list = document.getElementById('withdrawals-list');
+      list.innerHTML = '<div class="spinner"></div>';
+      
+      try {
+        const snap = await db.collection('withdrawals')
+          .where('status', '==', 'pending')
+          .orderBy('createdAt', 'desc')
+          .limit(20)
+          .get();
+        
+        if (snap.empty) {
+          list.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">No pending withdrawals</p>';
+          return;
         }
+        
+        list.innerHTML = '';
+        for (const doc of snap.docs) {
+          const w = doc.data();
+          const userDoc = await db.collection('users').doc(w.userId).get();
+          const userData = userDoc.data() || {};
+          
+          list.innerHTML += `
+            <div class="ios-card p-3 flex justify-between items-center">
+              <div class="flex-1">
+                <div class="font-bold">₹${w.amount} → ${w.esewaId}</div>
+                <div class="text-xs text-gray-500">User: ${userData.username || w.userId.slice(0,8)}...</div>
+                <div class="text-xs text-gray-400">${formatTime(w.createdAt)}</div>
+              </div>
+              <div class="flex gap-2">
+                <button class="approve-withdraw ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg" 
+                        data-id="${doc.id}" data-uid="${w.userId}" data-amt="${w.amount}" data-esewa="${w.esewaId}">✅ Paid</button>
+                <button class="reject-withdraw ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg" 
+                        data-id="${doc.id}" data-uid="${w.userId}" data-amt="${w.amount}">❌ Reject</button>
+              </div>
+            </div>`;
+        }
+        
+        document.querySelectorAll('.approve-withdraw').forEach(btn => {
+          btn.onclick = async () => {
+            if (!confirm(`Mark ₹${btn.dataset.amt} as PAID to eSewa ${btn.dataset.esewa}? Remember to send money manually!`)) return;
+            try {
+              await db.collection('withdrawals').doc(btn.dataset.id).update({ status: 'completed' });
+              await db.collection('transactions').add({
+                userId: btn.dataset.uid,
+                amount: parseInt(btn.dataset.amt),
+                type: 'debit',
+                description: 'Withdrawal Completed via eSewa',
+                status: 'completed',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              showToast('Withdrawal marked as paid! ✅ Send money via eSewa now.');
+              loadWithdrawals();
+              loadStats();
+            } catch (e) {
+              showToast('Error: ' + e.message, 'error');
+            }
+          };
+        });
+        
+        document.querySelectorAll('.reject-withdraw').forEach(btn => {
+          btn.onclick = async () => {
+            if (!confirm('Reject & refund this withdrawal?')) return;
+            try {
+              await db.collection('withdrawals').doc(btn.dataset.id).update({ status: 'rejected' });
+              // Refund wallet
+              await db.collection('users').doc(btn.dataset.uid).update({ 
+                wallet: firebase.firestore.FieldValue.increment(parseInt(btn.dataset.amt))
+              });
+              await db.collection('transactions').add({
+                userId: btn.dataset.uid,
+                amount: parseInt(btn.dataset.amt),
+                type: 'credit',
+                description: 'Withdrawal Rejected - Refunded',
+                status: 'completed',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              showToast('Withdrawal rejected & amount refunded');
+              loadWithdrawals();
+            } catch (e) {
+              showToast('Error: ' + e.message, 'error');
+            }
+          };
+        });
+      } catch (e) {
+        list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+      }
     }
-    
-    // Initialize and create sample data
-    setTimeout(() => {
-        if (currentUser) createSampleData();
-    }, 2000);
-</script>
+
+    // =========================
+    // Tournament Management
+    // =========================
+    document.getElementById('create-tournament-form').onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        await db.collection('tournaments').add({
+          title: document.getElementById('t-title').value,
+          entryFee: parseInt(document.getElementById('t-entry').value),
+          prizePool: parseInt(document.getElementById('t-prize').value),
+          maxPlayers: parseInt(document.getElementById('t-max').value),
+          currentPlayers: 0,
+          gameType: document.getElementById('t-game').value,
+          rules: document.getElementById('t-rules').value || '',
+          startTime: new Date(document.getElementById('t-start').value),
+          status: 'upcoming',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          createdBy: currentAdmin.uid
+        });
+        showToast('Tournament created! 🎉');
+        e.target.reset();
+        loadTournamentsAdmin();
+        loadStats();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    async function loadTournamentsAdmin() {
+      const list = document.getElementById('tournaments-list');
+      list.innerHTML = '<div class="spinner"></div>';
+      
+      try {
+        const snap = await db.collection('tournaments')
+          .orderBy('createdAt', 'desc')
+          .limit(10)
+          .get();
+        
+        if (snap.empty) {
+          list.innerHTML = '<p class="text-center text-gray-500 text-sm">No tournaments found</p>';
+          return;
+        }
+        
+        list.innerHTML = '';
+        for (const doc of snap.docs) {
+          const t = doc.data();
+          const statusColor = t.status === 'upcoming' ? 'status-pending' : 
+                             t.status === 'playing' ? 'status-approved' : 'status-rejected';
+          
+          list.innerHTML += `
+            <div class="ios-card p-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <div class="font-bold">${t.title}</div>
+                  <div class="text-xs text-gray-500">${t.gameType} • ₹${t.entryFee} entry</div>
+                  <div class="text-xs text-gray-400">${t.currentPlayers || 0}/${t.maxPlayers} players • ${formatTime(t.startTime)}</div>
+                </div>
+                <span class="${statusColor}">${t.status}</span>
+              </div>
+              <div class="flex gap-2 mt-3">
+                ${t.status === 'upcoming' ? `
+                  <button class="ios-btn ios-btn-primary px-3 py-1 text-xs rounded-lg" 
+                          onclick="openRoomModal('${doc.id}', '${t.title.replace(/'/g, "\\'")}')">🎮 Room ID</button>
+                  <button class="ios-btn bg-purple-500 text-white px-3 py-1 text-xs rounded-lg" 
+                          onclick="updateTournamentStatus('${doc.id}', 'playing')">▶ Start</button>
+                ` : ''}
+                ${t.status === 'playing' ? `
+                  <button class="ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg" 
+                          onclick="updateTournamentStatus('${doc.id}', 'ended')">✅ End</button>
+                ` : ''}
+                <button class="ios-btn bg-gray-300 px-3 py-1 text-xs rounded-lg">Edit</button>
+              </div>
+            </div>`;
+        }
+      } catch (e) {
+        list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
+      }
+    }
+
+    window.updateTournamentStatus = async (tid, status) => {
+      if (!confirm(`Set tournament to "${status}"?`)) return;
+      try {
+        await db.collection('tournaments').doc(tid).update({ status });
+        showToast(`Tournament ${status}!`);
+        loadTournamentsAdmin();
+      } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    };
+
+    // =========================
+    // Room ID Distribution
+    // =========================
+    window.openRoomModal = (tid, title) => {
+      selectedTournamentForRoom = tid;
+      document.getElementById('room-tournament-title').textContent = title;
+      document.getElementById('roomModal').classList.remove('hidden');
+      document.getElementById('roomModal').classList.add('flex');
+    };
+
+    window.closeRoomModal = () => {
+      document.getElementById('roomModal').classList.add('hidden');
+      document.getElementById('roomModal').classList.remove('flex');
+      selectedTournamentForRoom = null;
+    };
+
+    window.sendRoomCredentials = async () => {
+      const roomId = document.getElementById('room-id').value.trim();
+      const roomPass = document.getElementById('room-pass').value.trim();
+      if (!roomId || !roomPass) { showToast('Enter Room ID & Password', 'error'); return; }
+      
+      try {
+        // Update tournament with room credentials
+        await db.collection('tournaments').doc(selectedTournamentForRoom).update({
+          roomId, roomPass, roomDistributedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Get registered players
+        const regs = await db.collection('tournamentRegistrations')
+          .where('tournamentId', '==', selectedTournamentForRoom)
+          .where('status', '==', 'registered')
+          .get();
+        
+        // Store credentials in each player's registration (user can fetch when joined)
+        for (const reg of regs.docs) {
+          await db.collection('tournamentRegistrations').doc(reg.id).update({
+            roomId, roomPass, roomNotified: false
+          });
+        }
+        
+        showToast(`Room credentials sent to ${regs.size} players!`);
+        closeRoomModal();
+        document.getElementById('room-id').value = '';
+        document.getElementById('room-pass').value = '';
+      } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    };
+
+    // =========================
+    // User Search
+    // =========================
+    document.getElementById('btn-search-user').onclick = async () => {
+      const query = document.getElementById('user-search').value.trim();
+      if (!query) return;
+      const result = document.getElementById('user-result');
+      result.innerHTML = '<div class="spinner"></div>';
+      
+      try {
+        let userDoc;
+        if (query.includes('@')) {
+          const q = await db.collection('users').where('email', '==', query).limit(1).get();
+          userDoc = q.docs[0];
+        } else if (/^[a-zA-Z0-9]{28}$/.test(query)) {
+          userDoc = await db.collection('users').doc(query).get();
+        } else {
+          const q = await db.collection('users').where('username', '==', query).limit(1).get();
+          userDoc = q.docs[0];
+        }
+        
+        if (!userDoc?.exists) { 
+          result.innerHTML = '<p class="text-red-500 text-sm">User not found</p>'; 
+          return; 
+        }
+        
+        const u = userDoc.data();
+        result.innerHTML = `
+          <div class="ios-card p-4">
+            <div class="font-bold">${u.username}</div>
+            <div class="text-sm text-gray-500">${u.email}</div>
+            <div class="grid grid-cols-2 gap-2 text-sm mt-3">
+              <div>💰 Wallet: ₹${u.wallet || 0}</div>
+              <div>🎮 FF UID: ${u.ffUid || '-'}</div>
+              <div>📱 eSewa: ${u.esewaId || '-'}</div>
+              <div>🏆 Wins: ${u.totalWins || 0}</div>
+            </div>
+            <div class="mt-3 flex gap-2">
+              <button class="ios-btn ios-btn-primary px-3 py-1 text-xs rounded-lg" 
+                      onclick="adjustWallet('${userDoc.id}', '${u.username}')">💰 Adjust Wallet</button>
+              <button class="ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg">⚠️ Ban User</button>
+            </div>
+          </div>`;
+      } catch (e) { 
+        result.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`; 
+      }
+    };
+
+    window.adjustWallet = async (uid, username) => {
+      const amount = prompt(`Adjust wallet for ${username}:\nEnter positive to add, negative to deduct`);
+      if (!amount) return;
+      const amt = parseInt(amount);
+      if (isNaN(amt)) { showToast('Invalid amount', 'error'); return; }
+      
+      try {
+        await db.collection('users').doc(uid).update({ 
+          wallet: firebase.firestore.FieldValue.increment(amt)
+        });
+        await db.collection('transactions').add({
+          userId: uid,
+          amount: Math.abs(amt),
+          type: amt > 0 ? 'credit' : 'debit',
+          description: `Admin Adjustment: ${amt > 0 ? 'Added' : 'Deducted'} by admin`,
+          status: 'completed',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showToast(`Wallet adjusted by ₹${amt}`);
+      } catch (e) {
+        showToast('Error: ' + e.message, 'error');
+      }
+    };
+
+    // =========================
+    // Results Verification (Placeholder)
+    // =========================
+    async function loadResults() {
+      const list = document.getElementById('results-list');
+      list.innerHTML = '<p class="text-sm text-gray-500">Result submission feature coming soon!</p>';
+      // Future: Load pending result submissions from 'matchResults' collection
+    }
+
+    // Initialize
+    document.addEventListener('click', (e) => {
+      if (e.target === document.getElementById('roomModal')) closeRoomModal();
+    });
+  </script>
 </body>
 </html>
