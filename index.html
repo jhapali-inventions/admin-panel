@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Hamro Tournament | Admin Panel</title>
+    <title>Esports Admin Panel | Tournament Manager</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Firebase Compat CDN -->
@@ -14,36 +14,33 @@
         * { font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif; }
         body { background-color: #f2f2f7; }
         .apple-card { background: #ffffff; box-shadow: 0 2px 20px rgba(0,0,0,0.06); border-radius: 20px; transition: all 0.2s ease; }
+        .sidebar-active { background-color: #007AFF10; color: #007AFF; border-left: 3px solid #007AFF; font-weight: 600; }
         .dark body { background-color: #000000; }
-        .dark .apple-card { background: #1c1c1e; color: #ffffff; }
-        .btn-primary { background: #007AFF; color: white; border-radius: 12px; padding: 10px 20px; font-weight: 600; transition: 0.2s; cursor: pointer; }
-        .btn-primary:hover { opacity: 0.85; transform: scale(0.98); }
-        .btn-danger { background: #FF3B30; color: white; border-radius: 12px; padding: 8px 16px; font-weight: 600; cursor: pointer; }
-        .btn-success { background: #34C759; color: white; border-radius: 12px; padding: 8px 16px; font-weight: 600; cursor: pointer; }
-        .nav-item { cursor: pointer; transition: all 0.2s; }
-        .nav-item:hover { background: rgba(0,122,255,0.1); }
-        .nav-active { background: rgba(0,122,255,0.15); color: #007AFF; border-left: 3px solid #007AFF; font-weight: 600; }
-        .dark .nav-active { background: rgba(0,122,255,0.25); }
-        .toast { position: fixed; bottom: 24px; right: 24px; background: #1c1c1e; color: white; padding: 12px 20px; border-radius: 30px; z-index: 1000; animation: slideIn 0.3s ease; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .spinner { width: 40px; height: 40px; border: 3px solid rgba(0,122,255,0.2); border-top-color: #007AFF; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 768px) { .sidebar { display: none; } .mobile-nav { display: flex; } }
-        @media (min-width: 769px) { .mobile-nav { display: none; } }
-        .badge-pending { background: #FF9500; color: white; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
-        .badge-approved { background: #34C759; color: white; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
-        .badge-rejected { background: #FF3B30; color: white; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
+        .dark .apple-card { background: #1c1c1e; color: #ffffff; box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
+        .dark .sidebar { background: #111111; border-right-color: #2c2c2e; }
+        .btn-primary { background: #007AFF; color: white; border-radius: 12px; padding: 8px 16px; font-weight: 500; transition: 0.2s; cursor: pointer; }
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-danger { background: #FF3B30; }
+        .btn-success { background: #34C759; }
+        .toast-notify { position: fixed; bottom: 24px; right: 24px; background: #1c1c1e; color: white; padding: 12px 20px; border-radius: 30px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        @media (max-width: 768px) {
+            .desktop-sidebar { display: none; }
+            .mobile-bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e5ea; z-index: 50; }
+            .dark .mobile-bottom-nav { background: #111; }
+            .main-content { padding-bottom: 80px; }
+        }
+        @media (min-width: 769px) { .mobile-bottom-nav { display: none; } }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { max-width: 500px; width: 90%; max-height: 85vh; overflow-y: auto; }
     </style>
 </head>
-<body class="antialiased">
+<body>
 
-<div id="app" class="min-h-screen"></div>
+<div id="app"></div>
 
 <script>
-    // ==================== FIREBASE CONFIGURATION ====================
-   const firebaseConfig = {
+    // ============ FIREBASE CONFIG (REPLACE WITH YOURS) ============
+    const firebaseConfig = {
   apiKey: "AIzaSyAPEWF1t1YKFG2-hrzY7IWBaumM4xyLwOs",
   authDomain: "hamro-tournament-09.firebaseapp.com",
   databaseURL: "https://hamro-tournament-09-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -58,71 +55,62 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    
-    // Admin credentials (only this email can access)
-    const ADMIN_EMAIL = "admin123@gmail.com";
-    const ADMIN_PASSWORD = "admin123";
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     
     // Global state
     let currentUser = null;
     let currentSection = 'dashboard';
     let darkMode = localStorage.getItem('adminDarkMode') === 'true';
+    let realtimeUnsubscribes = [];
     
-    // Helper Functions
+    // Helper functions
     function showToast(message, type = 'info') {
         const toast = document.createElement('div');
-        toast.className = 'toast';
-        toast.style.background = type === 'error' ? '#FF3B30' : type === 'success' ? '#34C759' : '#1c1c1e';
-        toast.textContent = message;
+        toast.className = 'toast-notify';
+        toast.innerText = message;
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 3000);
     }
     
-    async function logActivity(action, details = {}) {
+    async function logActivity(action, details) {
         if (!currentUser) return;
         try {
             await db.collection('activityLogs').add({
                 adminEmail: currentUser.email,
-                action: action,
-                details: details,
+                action,
+                details,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
         } catch(e) { console.warn(e); }
     }
     
-    // Auth State Listener
+    // Auth state listener
     auth.onAuthStateChanged(async (user) => {
-        if (user && user.email === ADMIN_EMAIL) {
+        if (user && user.email === 'admin123@gmail.com') {
             currentUser = user;
             renderAdminApp();
         } else {
-            if (user && user.email !== ADMIN_EMAIL) {
-                await auth.signOut();
-            }
+            if (user) await auth.signOut();
             currentUser = null;
             renderLoginScreen();
         }
     });
     
-    // Login Screen
     function renderLoginScreen() {
-        const appDiv = document.getElementById('app');
-        appDiv.innerHTML = `
+        document.getElementById('app').innerHTML = `
             <div class="min-h-screen flex items-center justify-center bg-[#f2f2f7] dark:bg-black p-4">
                 <div class="apple-card w-full max-w-md p-8">
                     <div class="text-center mb-6">
                         <div class="text-5xl mb-2">🎮</div>
-                        <h1 class="text-2xl font-bold">Hamro Tournament</h1>
-                        <p class="text-gray-500 text-sm">Admin Panel</p>
+                        <h1 class="text-2xl font-bold">Admin Panel</h1>
+                        <p class="text-gray-500 text-sm">Esports Tournament Manager</p>
                     </div>
                     <form id="loginForm">
                         <div class="mb-4">
-                            <label class="block text-sm font-medium mb-1">Email</label>
-                            <input type="email" id="loginEmail" class="w-full p-3 border border-gray-200 rounded-xl dark:bg-gray-800 dark:border-gray-700" placeholder="admin123@gmail.com" required>
+                            <input type="email" id="loginEmail" class="w-full p-3 border border-gray-200 rounded-xl dark:bg-gray-800" placeholder="admin123@gmail.com" required>
                         </div>
                         <div class="mb-6">
-                            <label class="block text-sm font-medium mb-1">Password</label>
-                            <input type="password" id="loginPassword" class="w-full p-3 border border-gray-200 rounded-xl dark:bg-gray-800 dark:border-gray-700" placeholder="••••••••" required>
+                            <input type="password" id="loginPassword" class="w-full p-3 border border-gray-200 rounded-xl dark:bg-gray-800" placeholder="Password" required>
                         </div>
                         <button type="submit" class="w-full btn-primary py-3">Sign In</button>
                         <div id="loginError" class="text-red-500 text-sm mt-3 text-center"></div>
@@ -130,73 +118,61 @@
                 </div>
             </div>
         `;
-        
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
-            
-            if (email !== ADMIN_EMAIL) {
-                document.getElementById('loginError').innerText = 'Access Denied: Only admin@hamro.com allowed';
-                return;
-            }
-            
             try {
-                await auth.signInWithEmailAndPassword(email, password);
-                showToast('Welcome Admin!', 'success');
-            } catch (error) {
-                document.getElementById('loginError').innerText = 'Invalid credentials';
+                const cred = await auth.signInWithEmailAndPassword(email, password);
+                if (cred.user.email !== 'admin123@gmail.com') {
+                    await auth.signOut();
+                    throw new Error('Access Denied');
+                }
+            } catch (err) {
+                document.getElementById('loginError').innerText = 'Invalid credentials or non-admin account';
             }
         });
     }
     
-    // Main Admin App
+    function cleanupListeners() { realtimeUnsubscribes.forEach(unsub => unsub()); realtimeUnsubscribes = []; }
+    
     function renderAdminApp() {
-        const appDiv = document.getElementById('app');
         const navItems = [
             { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-            { id: 'users', label: 'Users', icon: '👥' },
             { id: 'tournaments', label: 'Tournaments', icon: '🏆' },
-            { id: 'deposits', label: 'Deposits', icon: '💰' },
-            { id: 'withdrawals', label: 'Withdrawals', icon: '💸' },
-            { id: 'transactions', label: 'Transactions', icon: '📜' },
-            { id: 'notifications', label: 'Notifications', icon: '📢' },
-            { id: 'settings', label: 'Settings', icon: '⚙️' }
+            { id: 'wallet', label: 'Wallet', icon: '💰' },
+            { id: 'users', label: 'Users', icon: '👥' },
+            { id: 'activityLog', label: 'Activity Log', icon: '📋' }
         ];
         
-        appDiv.innerHTML = `
+        document.getElementById('app').innerHTML = `
             <div class="flex min-h-screen ${darkMode ? 'dark' : ''}">
-                <!-- Sidebar -->
-                <div class="sidebar w-64 fixed inset-y-0 left-0 bg-white dark:bg-[#111] border-r border-gray-200 dark:border-gray-800 flex flex-col z-20">
-                    <div class="p-6 text-xl font-bold flex items-center gap-2">🎮 <span>Hamro Admin</span></div>
+                <div class="desktop-sidebar w-64 fixed inset-y-0 left-0 bg-white dark:bg-[#111] border-r border-[#e5e5ea] dark:border-[#2c2c2e] flex flex-col">
+                    <div class="p-6 text-xl font-bold flex items-center gap-2">🎮 <span>Esports Admin</span></div>
                     <div class="flex-1 overflow-y-auto py-4">
                         ${navItems.map(item => `
-                            <div data-nav="${item.id}" class="nav-item flex items-center gap-3 px-6 py-3 mx-2 rounded-xl transition-all ${currentSection === item.id ? 'nav-active' : 'text-gray-700 dark:text-gray-300'}">
+                            <div data-nav="${item.id}" class="nav-item flex items-center gap-3 px-6 py-3 mx-2 rounded-xl cursor-pointer ${currentSection === item.id ? 'sidebar-active bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100'}" style="border-left-width: ${currentSection === item.id ? '3px' : '0px'};">
                                 <span class="text-xl">${item.icon}</span> <span>${item.label}</span>
-                                ${item.id === 'deposits' ? '<span id="pendingDepositsBadge" class="ml-auto bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>' : ''}
-                                ${item.id === 'withdrawals' ? '<span id="pendingWithdrawalsBadge" class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>' : ''}
                             </div>
                         `).join('')}
                     </div>
                     <div class="p-4 border-t border-gray-200 dark:border-gray-800">
-                        <button id="darkModeToggle" class="w-full mb-2 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center gap-2">🌙 Dark Mode</button>
-                        <button id="logoutBtn" class="w-full py-2 bg-red-500/10 text-red-600 rounded-xl">🚪 Logout</button>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-500">Dark Mode</span>
+                            <button id="darkModeToggle" class="w-10 h-5 rounded-full bg-gray-300 relative"><span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${darkMode ? 'translate-x-5' : ''}"></span></button>
+                        </div>
+                        <button id="logoutBtn" class="w-full mt-2 py-2 bg-red-500/10 text-red-600 rounded-xl">🔓 Logout</button>
                     </div>
                 </div>
-                
-                <!-- Mobile Bottom Nav -->
-                <div class="mobile-nav fixed bottom-0 left-0 right-0 bg-white dark:bg-[#111] border-t border-gray-200 dark:border-gray-800 py-2 px-4 justify-around z-30 flex">
+                <div class="mobile-bottom-nav fixed bottom-0 w-full bg-white dark:bg-[#111] border-t py-2 px-4 justify-around">
                     ${navItems.slice(0,5).map(item => `<button data-mobile-nav="${item.id}" class="flex flex-col items-center text-xs ${currentSection === item.id ? 'text-blue-600' : 'text-gray-500'}"><span class="text-xl">${item.icon}</span><span>${item.label}</span></button>`).join('')}
                 </div>
-                
-                <!-- Main Content -->
-                <div class="main-content flex-1 ml-0 md:ml-64 p-6 transition-all">
+                <div class="main-content flex-1 ml-0 md:ml-64 p-6">
                     <div id="sectionContent" class="max-w-7xl mx-auto">Loading...</div>
                 </div>
             </div>
         `;
         
-        // Event Listeners
         document.querySelectorAll('.nav-item').forEach(el => {
             el.addEventListener('click', () => changeSection(el.dataset.nav));
         });
@@ -208,33 +184,9 @@
             localStorage.setItem('adminDarkMode', darkMode);
             renderAdminApp();
         });
-        document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-            await auth.signOut();
-            showToast('Logged out');
-        });
+        document.getElementById('logoutBtn')?.addEventListener('click', async () => { await auth.signOut(); renderLoginScreen(); });
         
-        loadCounters();
         loadSection(currentSection);
-    }
-    
-    async function loadCounters() {
-        // Pending deposits count
-        const depositsSnap = await db.collection('deposits').where('status', '==', 'pending').get();
-        const depositBadge = document.getElementById('pendingDepositsBadge');
-        if (depositBadge) {
-            const count = depositsSnap.size;
-            depositBadge.classList.toggle('hidden', count === 0);
-            depositBadge.textContent = count;
-        }
-        
-        // Pending withdrawals count
-        const withdrawalsSnap = await db.collection('withdrawals').where('status', '==', 'pending').get();
-        const withdrawBadge = document.getElementById('pendingWithdrawalsBadge');
-        if (withdrawBadge) {
-            const count = withdrawalsSnap.size;
-            withdrawBadge.classList.toggle('hidden', count === 0);
-            withdrawBadge.textContent = count;
-        }
     }
     
     function changeSection(section) {
@@ -245,603 +197,431 @@
     async function loadSection(section) {
         const container = document.getElementById('sectionContent');
         if (!container) return;
-        
+        cleanupListeners();
         switch(section) {
             case 'dashboard': await renderDashboard(container); break;
-            case 'users': await renderUsers(container); break;
             case 'tournaments': await renderTournaments(container); break;
-            case 'deposits': await renderDeposits(container); break;
-            case 'withdrawals': await renderWithdrawals(container); break;
-            case 'transactions': await renderTransactions(container); break;
-            case 'notifications': await renderNotifications(container); break;
-            case 'settings': await renderSettings(container); break;
-            default: container.innerHTML = '<div class="apple-card p-6">Coming Soon</div>';
+            case 'wallet': await renderWallet(container); break;
+            case 'users': await renderUsers(container); break;
+            case 'activityLog': await renderActivityLog(container); break;
+            default: container.innerHTML = '<div class="apple-card p-6">Section coming soon</div>';
         }
     }
     
-    // ==================== DASHBOARD ====================
+    // ============ DASHBOARD ============
     async function renderDashboard(container) {
-        const usersSnap = await db.collection('users').get();
         const tournamentsSnap = await db.collection('tournaments').get();
-        const depositsSnap = await db.collection('deposits').where('status', '==', 'completed').get();
-        const withdrawalsSnap = await db.collection('withdrawals').where('status', '==', 'completed').get();
-        
-        let totalDeposited = 0;
-        depositsSnap.forEach(doc => totalDeposited += doc.data().amount || 0);
-        
-        let totalWithdrawn = 0;
-        withdrawalsSnap.forEach(doc => totalWithdrawn += doc.data().amount || 0);
-        
-        container.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                <div class="apple-card p-5"><div class="text-gray-500">Total Users</div><div class="text-3xl font-bold">${usersSnap.size}</div></div>
-                <div class="apple-card p-5"><div class="text-gray-500">Tournaments</div><div class="text-3xl font-bold">${tournamentsSnap.size}</div></div>
-                <div class="apple-card p-5"><div class="text-gray-500">Total Deposits</div><div class="text-3xl font-bold text-green-500">₹${totalDeposited.toLocaleString()}</div></div>
-                <div class="apple-card p-5"><div class="text-gray-500">Total Withdrawals</div><div class="text-3xl font-bold text-red-500">₹${totalWithdrawn.toLocaleString()}</div></div>
-            </div>
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">Recent Activity</h2>
-                <div id="recentActivity" class="space-y-2">Loading...</div>
-            </div>
-        `;
-        
-        const logsSnap = await db.collection('activityLogs').orderBy('timestamp', 'desc').limit(10).get();
-        const activityDiv = document.getElementById('recentActivity');
-        if (logsSnap.empty) {
-            activityDiv.innerHTML = '<div class="text-gray-500">No recent activity</div>';
-        } else {
-            activityDiv.innerHTML = logsSnap.docs.map(doc => {
-                const data = doc.data();
-                const date = data.timestamp?.toDate() || new Date();
-                return `<div class="border-b border-gray-100 dark:border-gray-700 py-2"><span class="font-medium">${data.action}</span> - ${data.adminEmail}<span class="text-gray-400 text-sm ml-2">${date.toLocaleString()}</span></div>`;
-            }).join('');
-        }
-    }
-    
-    // ==================== USERS MANAGEMENT (with FF UID) ====================
-    async function renderUsers(container) {
-        container.innerHTML = `
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">👥 User Management</h2>
-                <input type="text" id="searchUser" placeholder="Search by username or email..." class="w-full p-3 border border-gray-200 rounded-xl mb-4 dark:bg-gray-800">
-                <div id="usersList" class="space-y-3 max-h-[600px] overflow-y-auto">Loading...</div>
-            </div>
-        `;
-        
-        await loadUsersList();
-        
-        document.getElementById('searchUser')?.addEventListener('input', (e) => {
-            filterUsers(e.target.value);
-        });
-    }
-    
-    let allUsers = [];
-    
-    async function loadUsersList() {
         const usersSnap = await db.collection('users').get();
-        allUsers = [];
-        usersSnap.forEach(doc => {
-            allUsers.push({ id: doc.id, ...doc.data() });
-        });
-        displayUsers(allUsers);
-    }
-    
-    function displayUsers(users) {
-        const container = document.getElementById('usersList');
-        if (!container) return;
+        const withdrawalsSnap = await db.collection('withdrawals').where('status', '==', 'pending').get();
         
-        if (users.length === 0) {
-            container.innerHTML = '<div class="text-center text-gray-500 py-8">No users found</div>';
-            return;
-        }
-        
-        container.innerHTML = users.map(user => `
-            <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <div class="font-bold text-lg">${user.username || 'No name'}</div>
-                        <div class="text-sm text-gray-500">${user.email || 'No email'}</div>
-                        <div class="text-sm mt-1">💰 Balance: <span class="font-bold text-green-500">₹${user.wallet || 0}</span></div>
-                        <div class="text-sm">🎮 FF UID: <span class="font-mono ${user.ffUid ? 'text-blue-500' : 'text-gray-400'}">${user.ffUid || 'Not set'}</span></div>
-                        ${user.ffUidLocked ? '<span class="badge-approved text-xs ml-2">✓ Locked</span>' : '<span class="badge-pending text-xs ml-2">⚠️ Not Set</span>'}
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="openAdjustWallet('${user.id}', ${user.wallet || 0})" class="btn-success text-sm py-1 px-3">💰 Adjust</button>
-                        <button onclick="viewUserDetails('${user.id}')" class="btn-primary text-sm py-1 px-3">View</button>
-                    </div>
+        container.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="apple-card p-6"><div class="text-3xl mb-2">🏆</div><div class="text-2xl font-bold">${tournamentsSnap.size}</div><div>Total Tournaments</div></div>
+                <div class="apple-card p-6"><div class="text-3xl mb-2">👥</div><div class="text-2xl font-bold">${usersSnap.size}</div><div>Total Users</div></div>
+                <div class="apple-card p-6"><div class="text-3xl mb-2">💰</div><div class="text-2xl font-bold">${withdrawalsSnap.size}</div><div>Pending Withdrawals</div></div>
+            </div>
+            <div class="apple-card p-6">
+                <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+                <div class="flex gap-4 flex-wrap">
+                    <button onclick="window.dispatchEvent(new CustomEvent('openCreateTournament'))" class="btn-primary">➕ Create Tournament</button>
+                    <button onclick="changeSection('wallet')" class="btn-primary bg-green-500">💰 Manage Withdrawals</button>
                 </div>
             </div>
-        `).join('');
+        `;
+        window.addEventListener('openCreateTournament', () => showCreateTournamentModal(), { once: true });
     }
     
-    function filterUsers(searchTerm) {
-        if (!searchTerm) {
-            displayUsers(allUsers);
-            return;
-        }
-        const filtered = allUsers.filter(user => 
-            (user.username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.email?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (user.ffUid?.includes(searchTerm))
-        );
-        displayUsers(filtered);
-    }
-    
-    window.openAdjustWallet = (userId, currentBalance) => {
-        const amount = prompt(`Current Balance: ₹${currentBalance}\nEnter amount to add (+) or deduct (-):`, '0');
-        if (amount === null) return;
-        
-        const numAmount = parseFloat(amount);
-        if (isNaN(numAmount)) {
-            showToast('Invalid amount', 'error');
-            return;
-        }
-        
-        adjustWallet(userId, numAmount);
-    };
-    
-    async function adjustWallet(userId, amount) {
-        const userRef = db.collection('users').doc(userId);
-        const userDoc = await userRef.get();
-        const currentBalance = userDoc.data()?.wallet || 0;
-        const newBalance = currentBalance + amount;
-        
-        if (newBalance < 0) {
-            showToast('Cannot deduct more than current balance', 'error');
-            return;
-        }
-        
-        await userRef.update({ wallet: newBalance });
-        
-        await db.collection('transactions').add({
-            userId: userId,
-            amount: Math.abs(amount),
-            type: amount > 0 ? 'credit' : 'debit',
-            description: `Admin ${amount > 0 ? 'added' : 'deducted'} ₹${Math.abs(amount)}`,
-            status: 'completed',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        await logActivity(`Wallet adjusted for user ${userId}`, { amount, newBalance });
-        showToast(`Wallet updated! New balance: ₹${newBalance}`, 'success');
-        loadUsersList();
-    }
-    
-    window.viewUserDetails = async (userId) => {
-        const userDoc = await db.collection('users').doc(userId).get();
-        const user = userDoc.data();
-        
-        // Get user transactions
-        const transactionsSnap = await db.collection('transactions')
-            .where('userId', '==', userId)
-            .orderBy('createdAt', 'desc')
-            .limit(10)
-            .get();
-        
-        let transactionsHtml = '';
-        transactionsSnap.forEach(doc => {
-            const t = doc.data();
-            const date = t.createdAt?.toDate() || new Date();
-            transactionsHtml += `<div class="border-b py-2 text-sm"><span class="${t.type === 'credit' ? 'text-green-500' : 'text-red-500'}">${t.type === 'credit' ? '+' : '-'} ₹${t.amount}</span> - ${t.description}<span class="text-gray-400 text-xs ml-2">${date.toLocaleString()}</span></div>`;
-        });
-        
-        alert(`User Details:
-Username: ${user.username}
-Email: ${user.email}
-Wallet: ₹${user.wallet}
-FF UID: ${user.ffUid || 'Not set'}
-FF UID Locked: ${user.ffUidLocked ? 'Yes' : 'No'}
-eSewa ID: ${user.esewaId || 'Not set'}
-
-Recent Transactions:
-${transactionsHtml || 'No transactions'}`);
-    };
-    
-    // ==================== TOURNAMENTS ====================
+    // ============ TOURNAMENTS (CREATE + LIST) ============
     async function renderTournaments(container) {
+        const tournaments = await db.collection('tournaments').orderBy('createdAt', 'desc').get();
         container.innerHTML = `
-            <div class="apple-card p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold">🏆 Tournaments</h2>
-                    <button onclick="showCreateTournamentModal()" class="btn-primary">+ Create Tournament</button>
-                </div>
-                <div id="tournamentsList" class="space-y-3">Loading...</div>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold">Tournaments</h1>
+                <button onclick="window.showCreateTournamentModal()" class="btn-primary">➕ Create Tournament</button>
             </div>
-            <div id="tournamentModal" class="modal">
-                <div class="apple-card p-6 w-full max-w-md">
-                    <h3 class="text-xl font-bold mb-4">Create Tournament</h3>
-                    <form id="createTournamentForm">
-                        <input type="text" id="tourneyTitle" placeholder="Tournament Title" class="w-full p-3 border rounded-xl mb-3" required>
-                        <input type="text" id="tourneyGame" placeholder="Game (Free Fire/BGMI)" class="w-full p-3 border rounded-xl mb-3" required>
-                        <input type="number" id="tourneyEntryFee" placeholder="Entry Fee (₹)" class="w-full p-3 border rounded-xl mb-3" required>
-                        <input type="number" id="tourneyPrizePool" placeholder="Prize Pool (₹)" class="w-full p-3 border rounded-xl mb-3" required>
-                        <input type="datetime-local" id="tourneyMatchTime" class="w-full p-3 border rounded-xl mb-3" required>
-                        <input type="text" id="tourneyRoomId" placeholder="Room ID" class="w-full p-3 border rounded-xl mb-3">
-                        <input type="text" id="tourneyRoomPassword" placeholder="Room Password" class="w-full p-3 border rounded-xl mb-3">
-                        <div class="flex gap-2">
-                            <button type="submit" class="btn-primary flex-1">Create</button>
-                            <button type="button" onclick="closeTournamentModal()" class="btn-danger flex-1">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            <div id="tournamentsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         `;
         
-        await loadTournaments();
-    }
-    
-    async function loadTournaments() {
-        const tournamentsSnap = await db.collection('tournaments').orderBy('createdAt', 'desc').get();
-        const container = document.getElementById('tournamentsList');
-        
-        if (tournamentsSnap.empty) {
-            container.innerHTML = '<div class="text-center text-gray-500 py-8">No tournaments yet</div>';
-            return;
-        }
-        
-        container.innerHTML = tournamentsSnap.docs.map(doc => {
-            const t = doc.data();
-            const matchTime = t.matchTime?.toDate() || new Date(t.matchTime);
-            return `
-                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="font-bold text-lg">${t.title || 'Untitled'}</div>
-                            <div class="text-sm text-gray-500">${t.game || 'Game'} | Entry: ₹${t.entryFee || 0} | Prize: ₹${t.prizePool || 0}</div>
-                            <div class="text-sm">📅 ${matchTime.toLocaleString()}</div>
-                            ${t.roomId ? `<div class="text-xs text-gray-400">Room: ${t.roomId} | Pass: ${t.roomPassword}</div>` : ''}
-                        </div>
-                        <div class="flex gap-2">
-                            <span class="badge-${t.status === 'completed' ? 'approved' : t.status === 'live' ? 'pending' : 'pending'} px-3 py-1 rounded-full text-xs">${t.status || 'upcoming'}</span>
-                            <button onclick="deleteTournament('${doc.id}')" class="text-red-500">🗑️</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    window.showCreateTournamentModal = () => {
-        document.getElementById('tournamentModal').classList.add('active');
-    };
-    
-    window.closeTournamentModal = () => {
-        document.getElementById('tournamentModal').classList.remove('active');
-    };
-    
-    document.getElementById('createTournamentForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const tournamentData = {
-            title: document.getElementById('tourneyTitle').value,
-            game: document.getElementById('tourneyGame').value,
-            entryFee: parseFloat(document.getElementById('tourneyEntryFee').value),
-            prizePool: parseFloat(document.getElementById('tourneyPrizePool').value),
-            matchTime: firebase.firestore.Timestamp.fromDate(new Date(document.getElementById('tourneyMatchTime').value)),
-            roomId: document.getElementById('tourneyRoomId').value,
-            roomPassword: document.getElementById('tourneyRoomPassword').value,
-            status: 'upcoming',
-            currentPlayers: 0,
-            maxPlayers: 100,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        await db.collection('tournaments').add(tournamentData);
-        await logActivity('Created tournament', { title: tournamentData.title });
-        showToast('Tournament created!', 'success');
-        closeTournamentModal();
-        loadTournaments();
-    });
-    
-    window.deleteTournament = async (id) => {
-        if (confirm('Delete this tournament?')) {
-            await db.collection('tournaments').doc(id).delete();
-            await logActivity('Deleted tournament', { id });
-            showToast('Tournament deleted');
-            loadTournaments();
-        }
-    };
-    
-    // ==================== DEPOSITS ====================
-    async function renderDeposits(container) {
-        container.innerHTML = `
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">💰 Deposit Requests</h2>
-                <div id="depositsList" class="space-y-3">Loading...</div>
-            </div>
-        `;
-        
-        const depositsSnap = await db.collection('deposits').orderBy('createdAt', 'desc').get();
-        const containerDiv = document.getElementById('depositsList');
-        
-        if (depositsSnap.empty) {
-            containerDiv.innerHTML = '<div class="text-center text-gray-500 py-8">No deposit requests</div>';
-            return;
-        }
-        
-        containerDiv.innerHTML = depositsSnap.docs.map(doc => {
-            const d = doc.data();
-            const date = d.createdAt?.toDate() || new Date();
-            return `
-                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="font-bold">User ID: ${d.userId}</div>
-                            <div class="text-lg font-bold text-green-500">₹${d.amount}</div>
-                            <div class="text-sm text-gray-500">Txn: ${d.transactionId}</div>
-                            <div class="text-xs text-gray-400">${date.toLocaleString()}</div>
-                        </div>
-                        <div class="flex gap-2">
-                            <span class="badge-${d.status === 'completed' ? 'approved' : d.status === 'pending' ? 'pending' : 'rejected'} px-3 py-1 rounded-full text-xs">${d.status}</span>
-                            ${d.status === 'pending' ? `
-                                <button onclick="approveDeposit('${doc.id}', ${d.amount}, '${d.userId}')" class="btn-success text-sm py-1 px-3">Approve</button>
-                                <button onclick="rejectDeposit('${doc.id}')" class="btn-danger text-sm py-1 px-3">Reject</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    window.approveDeposit = async (depositId, amount, userId) => {
-        const userRef = db.collection('users').doc(userId);
-        const userDoc = await userRef.get();
-        const currentBalance = userDoc.data()?.wallet || 0;
-        
-        await userRef.update({ wallet: currentBalance + amount });
-        await db.collection('deposits').doc(depositId).update({ status: 'completed' });
-        
-        await db.collection('transactions').add({
-            userId: userId,
-            amount: amount,
-            type: 'credit',
-            description: 'Deposit approved',
-            status: 'completed',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        await logActivity('Approved deposit', { userId, amount });
-        showToast(`Deposit approved! ₹${amount} added`, 'success');
-        renderDeposits(document.getElementById('sectionContent'));
-        loadCounters();
-    };
-    
-    window.rejectDeposit = async (depositId) => {
-        await db.collection('deposits').doc(depositId).update({ status: 'rejected' });
-        await logActivity('Rejected deposit', { depositId });
-        showToast('Deposit rejected');
-        renderDeposits(document.getElementById('sectionContent'));
-        loadCounters();
-    };
-    
-    // ==================== WITHDRAWALS ====================
-    async function renderWithdrawals(container) {
-        container.innerHTML = `
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">💸 Withdrawal Requests</h2>
-                <div id="withdrawalsList" class="space-y-3">Loading...</div>
-            </div>
-        `;
-        
-        const withdrawalsSnap = await db.collection('withdrawals').orderBy('createdAt', 'desc').get();
-        const containerDiv = document.getElementById('withdrawalsList');
-        
-        if (withdrawalsSnap.empty) {
-            containerDiv.innerHTML = '<div class="text-center text-gray-500 py-8">No withdrawal requests</div>';
-            return;
-        }
-        
-        containerDiv.innerHTML = withdrawalsSnap.docs.map(doc => {
-            const w = doc.data();
-            const date = w.createdAt?.toDate() || new Date();
-            return `
-                <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <div class="font-bold">User ID: ${w.userId}</div>
-                            <div class="text-lg font-bold text-red-500">₹${w.amount}</div>
-                            <div class="text-sm">eSewa: ${w.esewaId || 'Not provided'}</div>
-                            <div class="text-xs text-gray-400">${date.toLocaleString()}</div>
-                        </div>
-                        <div class="flex gap-2">
-                            <span class="badge-${w.status === 'completed' ? 'approved' : w.status === 'pending' ? 'pending' : 'rejected'} px-3 py-1 rounded-full text-xs">${w.status}</span>
-                            ${w.status === 'pending' ? `
-                                <button onclick="approveWithdrawal('${doc.id}', ${w.amount}, '${w.userId}')" class="btn-success text-sm py-1 px-3">Complete</button>
-                                <button onclick="rejectWithdrawal('${doc.id}')" class="btn-danger text-sm py-1 px-3">Reject</button>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    window.approveWithdrawal = async (withdrawalId, amount, userId) => {
-        const userRef = db.collection('users').doc(userId);
-        const userDoc = await userRef.get();
-        const currentBalance = userDoc.data()?.wallet || 0;
-        
-        if (currentBalance < amount) {
-            showToast('Insufficient balance!', 'error');
-            return;
-        }
-        
-        await userRef.update({ wallet: currentBalance - amount });
-        await db.collection('withdrawals').doc(withdrawalId).update({ status: 'completed' });
-        
-        await db.collection('transactions').add({
-            userId: userId,
-            amount: amount,
-            type: 'debit',
-            description: 'Withdrawal completed',
-            status: 'completed',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        await logActivity('Approved withdrawal', { userId, amount });
-        showToast(`Withdrawal completed! ₹${amount} deducted`, 'success');
-        renderWithdrawals(document.getElementById('sectionContent'));
-        loadCounters();
-    };
-    
-    window.rejectWithdrawal = async (withdrawalId) => {
-        await db.collection('withdrawals').doc(withdrawalId).update({ status: 'rejected' });
-        await logActivity('Rejected withdrawal', { withdrawalId });
-        showToast('Withdrawal rejected');
-        renderWithdrawals(document.getElementById('sectionContent'));
-        loadCounters();
-    };
-    
-    // ==================== TRANSACTIONS ====================
-    async function renderTransactions(container) {
-        container.innerHTML = `
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">📜 All Transactions</h2>
-                <div id="transactionsList" class="space-y-2 max-h-[600px] overflow-y-auto">Loading...</div>
-            </div>
-        `;
-        
-        const transactionsSnap = await db.collection('transactions').orderBy('createdAt', 'desc').limit(100).get();
-        const containerDiv = document.getElementById('transactionsList');
-        
-        if (transactionsSnap.empty) {
-            containerDiv.innerHTML = '<div class="text-center text-gray-500 py-8">No transactions</div>';
-            return;
-        }
-        
-        containerDiv.innerHTML = transactionsSnap.docs.map(doc => {
-            const t = doc.data();
-            const date = t.createdAt?.toDate() || new Date();
-            return `
-                <div class="border-b border-gray-100 dark:border-gray-700 py-2 flex justify-between">
-                    <div>
-                        <div class="font-medium">${t.description}</div>
-                        <div class="text-xs text-gray-400">User: ${t.userId}</div>
-                        <div class="text-xs text-gray-400">${date.toLocaleString()}</div>
-                    </div>
-                    <div class="${t.type === 'credit' ? 'text-green-500' : 'text-red-500'} font-bold">
-                        ${t.type === 'credit' ? '+' : '-'} ₹${t.amount}
-                        <span class="badge-${t.status === 'completed' ? 'approved' : 'pending'} text-xs ml-2 px-2 py-0.5 rounded-full">${t.status}</span>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    // ==================== NOTIFICATIONS ====================
-    async function renderNotifications(container) {
-        container.innerHTML = `
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">📢 Send Notification</h2>
-                <form id="notificationForm">
-                    <input type="text" id="notifTitle" placeholder="Title" class="w-full p-3 border rounded-xl mb-3" required>
-                    <textarea id="notifMessage" rows="3" placeholder="Message" class="w-full p-3 border rounded-xl mb-3" required></textarea>
-                    <select id="notifTarget" class="w-full p-3 border rounded-xl mb-3">
-                        <option value="all">All Users</option>
-                        <option value="active">Active Users</option>
-                    </select>
-                    <button type="submit" class="btn-primary w-full">Send Notification</button>
-                </form>
-                <h3 class="text-lg font-bold mt-6 mb-3">Recent Notifications</h3>
-                <div id="recentNotifs" class="space-y-2">Loading...</div>
-            </div>
-        `;
-        
-        const notifsSnap = await db.collection('notifications').orderBy('createdAt', 'desc').limit(10).get();
-        const notifDiv = document.getElementById('recentNotifs');
-        
-        if (notifsSnap.empty) {
-            notifDiv.innerHTML = '<div class="text-gray-500">No notifications sent</div>';
+        const listDiv = document.getElementById('tournamentsList');
+        if (tournaments.empty) {
+            listDiv.innerHTML = '<div class="apple-card p-6 text-center text-gray-500">No tournaments yet. Create your first tournament!</div>';
         } else {
-            notifDiv.innerHTML = notifsSnap.docs.map(doc => {
-                const n = doc.data();
-                const date = n.createdAt?.toDate() || new Date();
-                return `<div class="border-b py-2"><div class="font-bold">${n.title}</div><div class="text-sm">${n.message}</div><div class="text-xs text-gray-400">${date.toLocaleString()}</div></div>`;
+            listDiv.innerHTML = tournaments.docs.map(doc => {
+                const data = doc.data();
+                return `
+                    <div class="apple-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="font-bold text-lg">${data.title || 'Unnamed Tournament'}</h3>
+                                <p class="text-sm text-gray-500">${data.gameType || 'Game'}</p>
+                            </div>
+                            <span class="px-2 py-1 rounded-full text-xs ${data.status === 'upcoming' ? 'bg-blue-100 text-blue-700' : data.status === 'playing' ? 'bg-green-100 text-green-700' : 'bg-gray-100'}">${data.status || 'upcoming'}</span>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div>💰 Entry: ₹${data.entryFee || 0}</div>
+                            <div>🏆 Prize: ₹${data.prizePool || 0}</div>
+                            <div>👥 Max: ${data.maxPlayers || 0} players</div>
+                            <div>📅 ${data.startTime ? new Date(data.startTime).toLocaleDateString() : 'TBD'}</div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t flex gap-2">
+                            <button onclick="window.deleteTournament('${doc.id}')" class="text-red-500 text-sm">Delete</button>
+                        </div>
+                    </div>
+                `;
             }).join('');
         }
         
-        document.getElementById('notificationForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = document.getElementById('notifTitle').value;
-            const message = document.getElementById('notifMessage').value;
-            
-            await db.collection('notifications').add({
-                title: title,
-                message: message,
-                target: 'all',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            
-            await logActivity('Sent notification', { title });
-            showToast('Notification sent to all users!', 'success');
-            document.getElementById('notificationForm').reset();
-            renderNotifications(container);
-        });
+        window.showCreateTournamentModal = showCreateTournamentModal;
+        window.deleteTournament = async (id) => {
+            if (confirm('Delete this tournament?')) {
+                await db.collection('tournaments').doc(id).delete();
+                showToast('Tournament deleted');
+                await logActivity('Deleted tournament', { id });
+                renderTournaments(container);
+            }
+        };
     }
     
-    // ==================== SETTINGS ====================
-    async function renderSettings(container) {
-        const settingsSnap = await db.collection('settings').doc('appSettings').get();
-        const settings = settingsSnap.data() || {};
-        
-        container.innerHTML = `
-            <div class="apple-card p-6">
-                <h2 class="text-xl font-bold mb-4">⚙️ Admin Settings</h2>
-                <form id="settingsForm">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-1">eSewa ID (Admin)</label>
-                        <input type="text" id="adminEsewa" value="${settings.esewaId || '9841234567@esewa'}" class="w-full p-3 border rounded-xl">
+    function showCreateTournamentModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content apple-card p-6">
+                <h2 class="text-xl font-bold mb-4">Create Tournament</h2>
+                <form id="createTournamentForm">
+                    <input type="text" id="tourneyTitle" placeholder="Tournament Title" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <input type="text" id="gameType" placeholder="Game Type (e.g., BGMI, FreeFire)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <input type="number" id="entryFee" placeholder="Entry Fee (₹)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <input type="number" id="prizePool" placeholder="Prize Pool (₹)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <input type="number" id="maxPlayers" placeholder="Max Players" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <input type="datetime-local" id="startTime" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <textarea id="description" placeholder="Description (optional)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" rows="3"></textarea>
+                    <div class="flex gap-3">
+                        <button type="submit" class="btn-primary flex-1">Create Tournament</button>
+                        <button type="button" onclick="this.closest('.modal').remove()" class="btn-primary bg-gray-500 flex-1">Cancel</button>
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-1">Min Deposit (₹)</label>
-                        <input type="number" id="minDeposit" value="${settings.minDeposit || 50}" class="w-full p-3 border rounded-xl">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-1">Min Withdrawal (₹)</label>
-                        <input type="number" id="minWithdraw" value="${settings.minWithdraw || 100}" class="w-full p-3 border rounded-xl">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium mb-1">Welcome Bonus (₹)</label>
-                        <input type="number" id="welcomeBonus" value="${settings.welcomeBonus || 100}" class="w-full p-3 border rounded-xl">
-                    </div>
-                    <div class="mb-4">
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" id="maintenanceMode" ${settings.maintenanceMode ? 'checked' : ''}> Maintenance Mode
-                        </label>
-                    </div>
-                    <button type="submit" class="btn-primary w-full">Save Settings</button>
                 </form>
             </div>
         `;
+        document.body.appendChild(modal);
         
-        document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
+        document.getElementById('createTournamentForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const updatedSettings = {
-                esewaId: document.getElementById('adminEsewa').value,
-                minDeposit: parseInt(document.getElementById('minDeposit').value),
-                minWithdraw: parseInt(document.getElementById('minWithdraw').value),
-                welcomeBonus: parseInt(document.getElementById('welcomeBonus').value),
-                maintenanceMode: document.getElementById('maintenanceMode').checked,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            const tournamentData = {
+                title: document.getElementById('tourneyTitle').value,
+                gameType: document.getElementById('gameType').value,
+                entryFee: parseInt(document.getElementById('entryFee').value),
+                prizePool: parseInt(document.getElementById('prizePool').value),
+                maxPlayers: parseInt(document.getElementById('maxPlayers').value),
+                startTime: new Date(document.getElementById('startTime').value),
+                description: document.getElementById('description').value,
+                status: 'upcoming',
+                registeredPlayers: [],
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
             
-            await db.collection('settings').doc('appSettings').set(updatedSettings, { merge: true });
-            await logActivity('Updated settings', updatedSettings);
-            showToast('Settings saved!', 'success');
+            await db.collection('tournaments').add(tournamentData);
+            showToast('Tournament created successfully!');
+            await logActivity('Created tournament', { title: tournamentData.title });
+            modal.remove();
+            if (currentSection === 'tournaments') {
+                const container = document.getElementById('sectionContent');
+                await renderTournaments(container);
+            }
         });
     }
     
-    // Make functions globally available
-    window.approveDeposit = approveDeposit;
-    window.rejectDeposit = rejectDeposit;
-    window.approveWithdrawal = approveWithdrawal;
-    window.rejectWithdrawal = rejectWithdrawal;
-    window.deleteTournament = deleteTournament;
-    window.openAdjustWallet = openAdjustWallet;
-    window.viewUserDetails = viewUserDetails;
-    window.showCreateTournamentModal = showCreateTournamentModal;
-    window.closeTournamentModal = closeTournamentModal;
+    // ============ WALLET & WITHDRAWALS ============
+    async function renderWallet(container) {
+        // Get pending withdrawals
+        const withdrawals = await db.collection('withdrawals').where('status', '==', 'pending').get();
+        const approvedWithdrawals = await db.collection('withdrawals').where('status', '==', 'approved').limit(5).get();
+        
+        container.innerHTML = `
+            <h1 class="text-2xl font-bold mb-6">💰 Wallet Management</h1>
+            
+            <div class="apple-card p-6 mb-6">
+                <h2 class="text-xl font-bold mb-4">⏳ Pending Withdrawals (${withdrawals.size})</h2>
+                <div id="pendingWithdrawalsList" class="space-y-3"></div>
+            </div>
+            
+            <div class="apple-card p-6 mb-6">
+                <h2 class="text-xl font-bold mb-4">✅ Recent Approvals</h2>
+                <div id="approvedWithdrawalsList" class="space-y-3"></div>
+            </div>
+            
+            <div class="apple-card p-6">
+                <h2 class="text-xl font-bold mb-4">💸 Adjust User Wallet</h2>
+                <form id="adjustWalletForm">
+                    <input type="text" id="adjustUserId" placeholder="User ID (email or UID)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <input type="number" id="adjustAmount" placeholder="Amount (₹)" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <select id="adjustType" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800">
+                        <option value="add">➕ Add Funds</option>
+                        <option value="deduct">➖ Deduct Funds</option>
+                    </select>
+                    <input type="text" id="adjustReason" placeholder="Reason" class="w-full p-3 border rounded-xl mb-3 dark:bg-gray-800" required>
+                    <button type="submit" class="btn-primary w-full">Process Adjustment</button>
+                </form>
+            </div>
+        `;
+        
+        // Render pending withdrawals
+        const pendingDiv = document.getElementById('pendingWithdrawalsList');
+        if (withdrawals.empty) {
+            pendingDiv.innerHTML = '<div class="text-gray-500 text-center py-4">No pending withdrawals</div>';
+        } else {
+            pendingDiv.innerHTML = withdrawals.docs.map(doc => {
+                const data = doc.data();
+                return `
+                    <div class="border rounded-xl p-4 flex justify-between items-center">
+                        <div>
+                            <div class="font-bold">User: ${data.userId || 'Unknown'}</div>
+                            <div class="text-2xl font-bold text-green-600">₹${data.amount || 0}</div>
+                            <div class="text-xs text-gray-500">Requested: ${data.requestedAt?.toDate?.()?.toLocaleString() || 'Recently'}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="window.approveWithdrawal('${doc.id}', ${data.amount}, '${data.userId}')" class="btn-success px-4 py-2 rounded-lg">✅ Approve</button>
+                            <button onclick="window.rejectWithdrawal('${doc.id}', '${data.userId}')" class="btn-danger px-4 py-2 rounded-lg">❌ Reject</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Render approved withdrawals
+        const approvedDiv = document.getElementById('approvedWithdrawalsList');
+        if (approvedWithdrawals.empty) {
+            approvedDiv.innerHTML = '<div class="text-gray-500 text-center py-4">No recent approvals</div>';
+        } else {
+            approvedDiv.innerHTML = approvedWithdrawals.docs.map(doc => {
+                const data = doc.data();
+                return `
+                    <div class="border rounded-xl p-3 flex justify-between">
+                        <span>${data.userId}</span>
+                        <span class="font-bold text-green-600">₹${data.amount}</span>
+                        <span class="text-xs text-gray-500">${data.approvedAt?.toDate?.()?.toLocaleString() || 'Recently'}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Wallet adjustment handler
+        document.getElementById('adjustWalletForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('adjustUserId').value;
+            const amount = parseInt(document.getElementById('adjustAmount').value);
+            const type = document.getElementById('adjustType').value;
+            const reason = document.getElementById('adjustReason').value;
+            
+            // Get user document
+            const userQuery = await db.collection('users').where('email', '==', userId).get();
+            let userDoc;
+            if (!userQuery.empty) {
+                userDoc = userQuery.docs[0];
+            } else {
+                const byId = await db.collection('users').doc(userId).get();
+                if (byId.exists) userDoc = byId;
+            }
+            
+            if (!userDoc) {
+                showToast('User not found');
+                return;
+            }
+            
+            const currentBalance = userDoc.data().wallet || 0;
+            let newBalance = currentBalance;
+            if (type === 'add') {
+                newBalance = currentBalance + amount;
+            } else {
+                if (currentBalance < amount) {
+                    showToast('Insufficient balance');
+                    return;
+                }
+                newBalance = currentBalance - amount;
+            }
+            
+            await db.collection('users').doc(userDoc.id).update({ wallet: newBalance });
+            await db.collection('walletTransactions').add({
+                userId: userDoc.id,
+                amount: type === 'add' ? amount : -amount,
+                type,
+                reason,
+                adminEmail: currentUser.email,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            showToast(`Wallet ${type === 'add' ? 'credited' : 'debited'} by ₹${amount}`);
+            await logActivity(`Wallet ${type}`, { userId: userDoc.id, amount, reason });
+            document.getElementById('adjustWalletForm').reset();
+        });
+    }
+    
+    // Global functions for withdrawal actions
+    window.approveWithdrawal = async (withdrawalId, amount, userId) => {
+        if (confirm(`Approve withdrawal of ₹${amount}?`)) {
+            await db.collection('withdrawals').doc(withdrawalId).update({
+                status: 'approved',
+                approvedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                approvedBy: currentUser.email
+            });
+            showToast('Withdrawal approved');
+            await logActivity('Approved withdrawal', { withdrawalId, amount, userId });
+            // Refresh wallet section
+            if (currentSection === 'wallet') {
+                const container = document.getElementById('sectionContent');
+                await renderWallet(container);
+            }
+        }
+    };
+    
+    window.rejectWithdrawal = async (withdrawalId, userId) => {
+        if (confirm('Reject this withdrawal?')) {
+            await db.collection('withdrawals').doc(withdrawalId).update({
+                status: 'rejected',
+                rejectedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                rejectedBy: currentUser.email
+            });
+            
+            // Refund the amount back to user wallet
+            const userQuery = await db.collection('users').where('email', '==', userId).get();
+            if (!userQuery.empty) {
+                const userDoc = userQuery.docs[0];
+                const currentBalance = userDoc.data().wallet || 0;
+                const withdrawalData = (await db.collection('withdrawals').doc(withdrawalId).get()).data();
+                await db.collection('users').doc(userDoc.id).update({ 
+                    wallet: currentBalance + (withdrawalData?.amount || 0) 
+                });
+            }
+            
+            showToast('Withdrawal rejected and amount refunded');
+            await logActivity('Rejected withdrawal', { withdrawalId, userId });
+            if (currentSection === 'wallet') {
+                const container = document.getElementById('sectionContent');
+                await renderWallet(container);
+            }
+        }
+    };
+    
+    // ============ USERS ============
+    async function renderUsers(container) {
+        const users = await db.collection('users').limit(20).get();
+        container.innerHTML = `
+            <h1 class="text-2xl font-bold mb-6">👥 User Management</h1>
+            <div class="apple-card p-6">
+                <input type="text" id="searchUser" placeholder="Search by email or UID..." class="w-full p-3 border rounded-xl mb-4 dark:bg-gray-800">
+                <div id="usersList" class="space-y-3"></div>
+            </div>
+        `;
+        
+        const usersList = document.getElementById('usersList');
+        if (users.empty) {
+            usersList.innerHTML = '<div class="text-gray-500 text-center py-4">No users found. Create sample users in Firebase.</div>';
+        } else {
+            usersList.innerHTML = users.docs.map(doc => {
+                const data = doc.data();
+                return `
+                    <div class="border rounded-xl p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-bold">${data.email || doc.id}</div>
+                                <div class="text-sm text-gray-500">Wallet: ₹${data.wallet || 0}</div>
+                                <div class="text-xs text-gray-400">UID: ${doc.id.substring(0, 12)}...</div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="window.banUser('${doc.id}')" class="px-3 py-1 bg-red-500 text-white rounded-lg text-sm">Ban</button>
+                                <button onclick="window.adjustUserWallet('${doc.id}', ${data.wallet || 0})" class="px-3 py-1 bg-blue-500 text-white rounded-lg text-sm">Adjust Wallet</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        window.banUser = async (userId) => {
+            if (confirm('Ban this user?')) {
+                await db.collection('users').doc(userId).update({ banned: true, bannedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                showToast('User banned');
+                await logActivity('Banned user', { userId });
+            }
+        };
+        
+        window.adjustUserWallet = (userId, currentBalance) => {
+            const amount = prompt(`Current balance: ₹${currentBalance}\nEnter amount to add (use - for deduction):`);
+            if (amount) {
+                const numAmount = parseInt(amount);
+                db.collection('users').doc(userId).update({ wallet: currentBalance + numAmount });
+                showToast(`Wallet updated by ₹${numAmount}`);
+            }
+        };
+        
+        document.getElementById('searchUser').addEventListener('input', (e) => {
+            const search = e.target.value.toLowerCase();
+            const items = document.querySelectorAll('#usersList > div');
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(search) ? 'block' : 'none';
+            });
+        });
+    }
+    
+    // ============ ACTIVITY LOG ============
+    async function renderActivityLog(container) {
+        const logs = await db.collection('activityLogs').orderBy('timestamp', 'desc').limit(50).get();
+        container.innerHTML = `
+            <h1 class="text-2xl font-bold mb-6">📋 Activity Log</h1>
+            <div class="apple-card p-6">
+                <div id="logsList" class="space-y-2 max-h-[600px] overflow-y-auto">
+                    ${logs.empty ? '<div class="text-gray-500 text-center py-4">No activity logs yet</div>' : 
+                        logs.docs.map(doc => {
+                            const data = doc.data();
+                            return `
+                                <div class="border-b pb-2 text-sm">
+                                    <span class="font-medium">${data.adminEmail}</span> - 
+                                    <span>${data.action}</span>
+                                    <div class="text-xs text-gray-500">${data.timestamp?.toDate?.()?.toLocaleString() || 'Just now'}</div>
+                                    ${data.details ? `<div class="text-xs text-gray-400 mt-1">${JSON.stringify(data.details)}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('')
+                    }
+                </div>
+            </div>
+        `;
+    }
+    
+    // Helper to create sample data for testing
+    async function createSampleData() {
+        // Check if we need sample data
+        const usersCheck = await db.collection('users').limit(1).get();
+        if (usersCheck.empty) {
+            await db.collection('users').add({ email: 'player1@example.com', wallet: 5000, createdAt: new Date() });
+            await db.collection('users').add({ email: 'player2@example.com', wallet: 3000, createdAt: new Date() });
+            
+            await db.collection('withdrawals').add({
+                userId: 'player1@example.com',
+                amount: 1000,
+                status: 'pending',
+                requestedAt: new Date()
+            });
+            
+            await db.collection('tournaments').add({
+                title: 'Sample Tournament',
+                gameType: 'BGMI',
+                entryFee: 100,
+                prizePool: 10000,
+                maxPlayers: 50,
+                status: 'upcoming',
+                createdAt: new Date()
+            });
+            
+            showToast('Sample data created!');
+        }
+    }
+    
+    // Initialize and create sample data
+    setTimeout(() => {
+        if (currentUser) createSampleData();
+    }, 2000);
 </script>
 </body>
 </html>
