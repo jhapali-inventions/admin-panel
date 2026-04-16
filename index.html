@@ -3,211 +3,224 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin | Hamro Tournament</title>
+  <title>Admin Panel | Hamro Tournament</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     * { -webkit-tap-highlight-color: transparent; }
-    body {
-      font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif;
-      background: #f2f2f7;
-    }
+    body { font-family: -apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif; background: #f2f2f7; }
     body.dark { background: #000; color: #fff; }
-    .ios-card {
-      background: #fff; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
+    .ios-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     body.dark .ios-card { background: #1c1c1e; }
-    .ios-btn {
-      border-radius: 12px; transition: all 0.2s; font-weight: 600; cursor: pointer;
-    }
+    .ios-btn { border-radius: 12px; transition: all 0.2s; font-weight: 600; cursor: pointer; }
     .ios-btn:active { transform: scale(0.98); }
-    .ios-btn-primary { background: #007AFF; color: white; }
-    .ios-btn-success { background: #34C759; color: white; }
-    .ios-btn-danger { background: #FF3B30; color: white; }
-    .ios-input {
-      border-radius: 10px; border: 1px solid #e5e5ea; padding: 12px 16px; width: 100%; font-size: 16px;
-    }
+    .ios-input { border-radius: 10px; border: 1px solid #e5e5ea; padding: 12px 16px; width: 100%; font-size: 15px; }
     body.dark .ios-input { background: #2c2c2e; border-color: #3a3a3c; color: white; }
-    .status-pending { background: #FF9500; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
-    .status-approved { background: #34C759; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
-    .status-rejected { background: #FF3B30; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; }
-    .spinner {
-      width: 30px; height: 30px; border: 3px solid #e5e5ea; border-top-color: #007AFF;
-      border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
     .tab-btn.active { background: #007AFF !important; color: white !important; }
-    .toast {
-      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.9); color: white; padding: 10px 20px;
-      border-radius: 25px; z-index: 9999; font-size: 14px; animation: fadeInUp 0.3s ease;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
+    .spinner { width: 30px; height: 30px; border: 3px solid #e5e5ea; border-top-color: #007AFF; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: white; padding: 10px 20px; border-radius: 25px; z-index: 9999; font-size: 14px; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .status-pending { background: #FF9500; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .status-completed { background: #34C759; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .status-rejected { background: #FF3B30; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .filter-btn.active { background: #007AFF20; color: #007AFF; font-weight: 600; }
   </style>
 </head>
 <body class="p-4">
-  <div class="max-w-5xl mx-auto">
+  <div class="max-w-4xl mx-auto">
     <!-- Admin Login -->
     <div id="admin-login" class="ios-card p-6 max-w-md mx-auto mt-10">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-gradient-to-r from-[#007AFF] to-[#AF52DE] rounded-2xl flex items-center justify-center mx-auto mb-3">
           <span class="text-2xl">🔐</span>
         </div>
-        <h2 class="text-xl font-bold">Admin Access</h2>
-        <p class="text-xs text-gray-500">Hamro Tournament Dashboard</p>
+        <h2 class="text-xl font-bold">Admin Dashboard</h2>
+        <p class="text-xs text-gray-500">Hamro Tournament Management</p>
       </div>
       <input type="email" id="admin-email" placeholder="Admin Email" class="ios-input mb-3" required>
       <input type="password" id="admin-pass" placeholder="Password" class="ios-input mb-4" required>
-      <button id="btn-admin-login" class="ios-btn ios-btn-primary w-full py-3">Login</button>
+      <button id="btn-admin-login" class="ios-btn ios-btn-primary w-full py-3 bg-[#007AFF] text-white">Login</button>
       <p id="login-error" class="text-red-500 text-xs mt-2 text-center hidden"></p>
     </div>
 
-    <!-- Admin Dashboard (Hidden Until Login) -->
+    <!-- Admin Dashboard -->
     <div id="admin-dashboard" class="hidden space-y-4">
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-4">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-r from-[#007AFF] to-[#AF52DE] rounded-xl flex items-center justify-center">
-            <span class="text-white font-bold">⚙️</span>
-          </div>
-          <div>
-            <h1 class="font-bold text-lg">Admin Dashboard</h1>
-            <p class="text-xs text-gray-500" id="admin-email-display">admin@hamro.com</p>
-          </div>
+      <div class="flex justify-between items-center mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-[#007AFF] rounded-lg flex items-center justify-center text-white">⚙️</div>
+          <h1 class="font-bold text-lg">Admin Control</h1>
         </div>
-        <button id="btn-logout" class="ios-btn ios-btn-danger px-4 py-2 text-sm">Logout</button>
+        <button id="btn-logout" class="ios-btn ios-btn-danger px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg">Logout</button>
       </div>
 
-      <!-- Stats Cards -->
+      <!-- Stats -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div class="ios-card p-4 text-center">
-          <div class="text-2xl font-bold text-blue-500" id="stat-users">0</div>
-          <div class="text-xs text-gray-500">Total Users</div>
-        </div>
-        <div class="ios-card p-4 text-center">
-          <div class="text-2xl font-bold text-green-500" id="stat-deposits">0</div>
-          <div class="text-xs text-gray-500">Pending Deposits</div>
-        </div>
-        <div class="ios-card p-4 text-center">
-          <div class="text-2xl font-bold text-orange-500" id="stat-withdrawals">0</div>
-          <div class="text-xs text-gray-500">Pending Withdrawals</div>
-        </div>
-        <div class="ios-card p-4 text-center">
-          <div class="text-2xl font-bold text-purple-500" id="stat-tournaments">0</div>
-          <div class="text-xs text-gray-500">Active Tournaments</div>
-        </div>
+        <div class="ios-card p-3 text-center"><div class="text-xl font-bold text-blue-500" id="stat-users">0</div><div class="text-xs text-gray-500">Users</div></div>
+        <div class="ios-card p-3 text-center"><div class="text-xl font-bold text-green-500" id="stat-deposits">0</div><div class="text-xs text-gray-500">Pending Dep</div></div>
+        <div class="ios-card p-3 text-center"><div class="text-xl font-bold text-orange-500" id="stat-withdrawals">0</div><div class="text-xs text-gray-500">Pending Wit</div></div>
+        <div class="ios-card p-3 text-center"><div class="text-xl font-bold text-purple-500" id="stat-tournaments">0</div><div class="text-xs text-gray-500">Active Tourneys</div></div>
       </div>
 
-      <!-- Tabs Navigation -->
-      <div class="flex gap-2 overflow-x-auto pb-2 mb-4">
-        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-[#007AFF] text-white" data-tab="deposits">💰 Deposits</button>
-        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="withdrawals">💸 Withdrawals</button>
-        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="tournaments">🏆 Tournaments</button>
+      <!-- Tabs -->
+      <div class="flex gap-2 overflow-x-auto pb-2">
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-[#007AFF] text-white" data-tab="dashboard">📊 Overview</button>
         <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="users">👥 Users</button>
-        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="results">📊 Results</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="tournaments">🏆 Tournaments</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="deposits">💰 Deposits</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="withdrawals">💸 Withdrawals</button>
+        <button class="tab-btn ios-btn px-4 py-2 rounded-xl bg-gray-200" data-tab="notifications">🔔 Notify</button>
       </div>
 
-      <!-- Deposits Tab -->
-      <div id="tab-deposits" class="tab-content">
+      <!-- Overview Tab -->
+      <div id="tab-dashboard" class="tab-content space-y-3">
         <div class="ios-card p-4">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="font-bold">Pending Deposit Requests</h3>
-            <button onclick="loadDeposits()" class="text-[#007AFF] text-xs">🔄 Refresh</button>
+          <h3 class="font-bold mb-2">⚡ Quick Actions</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <button onclick="switchTab('tournaments')" class="ios-btn bg-purple-500 text-white py-2 rounded-xl text-sm">➕ Create Tournament</button>
+            <button onclick="switchTab('deposits')" class="ios-btn bg-green-500 text-white py-2 rounded-xl text-sm">✅ Approve Deposits</button>
+            <button onclick="switchTab('notifications')" class="ios-btn bg-blue-500 text-white py-2 rounded-xl text-sm">📢 Send Alert</button>
+            <button onclick="switchTab('withdrawals')" class="ios-btn bg-orange-500 text-white py-2 rounded-xl text-sm">💸 Process Withdrawals</button>
           </div>
-          <div id="deposits-list" class="space-y-3">
-            <div class="spinner"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Withdrawals Tab -->
-      <div id="tab-withdrawals" class="tab-content hidden">
-        <div class="ios-card p-4">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="font-bold">Pending Withdrawal Requests</h3>
-            <button onclick="loadWithdrawals()" class="text-[#007AFF] text-xs">🔄 Refresh</button>
-          </div>
-          <div id="withdrawals-list" class="space-y-3">
-            <div class="spinner"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tournaments Tab -->
-      <div id="tab-tournaments" class="tab-content hidden">
-        <!-- Create Tournament Form -->
-        <div class="ios-card p-4 mb-4">
-          <h3 class="font-bold mb-3">➕ Create New Tournament</h3>
-          <form id="create-tournament-form" class="space-y-3">
-            <input type="text" id="t-title" placeholder="Tournament Title" class="ios-input" required>
-            <div class="grid grid-cols-2 gap-3">
-              <input type="number" id="t-entry" placeholder="Entry Fee (₹)" class="ios-input" required>
-              <input type="number" id="t-prize" placeholder="Prize Pool (₹)" class="ios-input" required>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <input type="number" id="t-max" placeholder="Max Players" class="ios-input" value="50" required>
-              <input type="text" id="t-game" placeholder="Game (e.g., Free Fire)" class="ios-input" value="Free Fire" required>
-            </div>
-            <input type="datetime-local" id="t-start" class="ios-input" required>
-            <textarea id="t-rules" placeholder="Tournament Rules (optional)" class="ios-input" rows="2"></textarea>
-            <button type="submit" class="ios-btn ios-btn-success w-full py-3">Create Tournament</button>
-          </form>
-        </div>
-        <!-- Manage Tournaments -->
-        <div class="ios-card p-4">
-          <h3 class="font-bold mb-3">Manage Tournaments</h3>
-          <div id="tournaments-list" class="space-y-3"></div>
         </div>
       </div>
 
       <!-- Users Tab -->
       <div id="tab-users" class="tab-content hidden">
-        <div class="ios-card p-4">
-          <h3 class="font-bold mb-3">Search Users</h3>
-          <div class="flex gap-2 mb-3">
-            <input type="text" id="user-search" placeholder="Email, UID, or Username" class="ios-input flex-1">
-            <button id="btn-search-user" class="ios-btn ios-btn-primary px-4">Search</button>
-          </div>
-          <div id="user-result" class="space-y-3"></div>
+        <div class="ios-card p-4 mb-3">
+          <input type="text" id="user-search" placeholder="Search by Email or UID" class="ios-input mb-2">
+          <button id="btn-search-user" class="ios-btn ios-btn-primary w-full py-2 bg-[#007AFF] text-white">Search Users</button>
+        </div>
+        <div id="users-list" class="space-y-3">
+          <div class="spinner"></div>
         </div>
       </div>
 
-      <!-- Results Tab -->
-      <div id="tab-results" class="tab-content hidden">
+      <!-- Tournaments Tab -->
+      <div id="tab-tournaments" class="tab-content hidden">
+        <!-- Create Form -->
+        <div class="ios-card p-4 mb-4">
+          <h3 class="font-bold mb-3">➕ Create New Tournament</h3>
+          <form id="create-tournament-form" class="space-y-3">
+            <input type="text" id="t-title" placeholder="Tournament Title" class="ios-input" required>
+            <div class="grid grid-cols-2 gap-3">
+              <input type="text" id="t-banner" placeholder="Banner Image URL" class="ios-input" required>
+              <input type="text" id="t-id-display" placeholder="Auto-ID (HT-...)" class="ios-input disabled" disabled>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <input type="number" id="t-entry" placeholder="Entry Fee" class="ios-input" required>
+              <input type="number" id="t-prize" placeholder="Prize Pool" class="ios-input" required>
+              <input type="number" id="t-max" placeholder="Max Players" class="ios-input" value="50" required>
+            </div>
+            <input type="datetime-local" id="t-start" class="ios-input" required>
+            
+            <details class="ios-card p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+              <summary class="font-semibold cursor-pointer">📜 Rules & Instructions (Expand)</summary>
+              <div class="space-y-2 mt-2">
+                <textarea id="t-rules" placeholder="Tournament Rules" class="ios-input h-20"></textarea>
+                <textarea id="t-prize-dist" placeholder="Prize Distribution (e.g., 1st: 60%, 2nd: 30%, 3rd: 10%)" class="ios-input h-20"></textarea>
+                <textarea id="t-instructions" placeholder="Instructions Before Joining" class="ios-input h-20"></textarea>
+                <textarea id="t-prohibited" placeholder="Prohibited Behaviors" class="ios-input h-20"></textarea>
+                <textarea id="t-tips" placeholder="Important Tips" class="ios-input h-20"></textarea>
+              </div>
+            </details>
+            <button type="submit" class="ios-btn ios-btn-success w-full py-3 bg-[#34C759] text-white">Create Tournament</button>
+          </form>
+        </div>
+        <!-- Manage Tournaments -->
         <div class="ios-card p-4">
-          <h3 class="font-bold mb-3">Verify Match Results</h3>
-          <div id="results-list" class="space-y-3">
-            <p class="text-sm text-gray-500">No pending result submissions</p>
+          <h3 class="font-bold mb-3">Manage Tournaments</h3>
+          <div id="tournaments-manage-list" class="space-y-3">
+            <div class="spinner"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Deposits Tab -->
+      <div id="tab-deposits" class="tab-content hidden">
+        <div class="flex gap-2 mb-3 overflow-x-auto pb-1">
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm active" data-status="pending">Pending</button>
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm bg-gray-200" data-status="completed">Completed</button>
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm bg-gray-200" data-status="rejected">Rejected</button>
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm bg-gray-200" data-status="all">All History</button>
+        </div>
+        <div id="deposits-list" class="space-y-3">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <!-- Withdrawals Tab -->
+      <div id="tab-withdrawals" class="tab-content hidden">
+        <div class="flex gap-2 mb-3 overflow-x-auto pb-1">
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm active" data-status="pending">Pending</button>
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm bg-gray-200" data-status="completed">Completed</button>
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm bg-gray-200" data-status="rejected">Rejected</button>
+          <button class="filter-btn ios-btn px-3 py-1 rounded-lg text-sm bg-gray-200" data-status="all">All History</button>
+        </div>
+        <div id="withdrawals-list" class="space-y-3">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <!-- Notifications Tab -->
+      <div id="tab-notifications" class="tab-content hidden">
+        <div class="ios-card p-4">
+          <h3 class="font-bold mb-3">📢 Send In-App Notification</h3>
+          <form id="notify-form" class="space-y-3">
+            <select id="notify-target" class="ios-input">
+              <option value="all">🌍 All Users</option>
+              <option value="specific">👤 Specific User (by UID)</option>
+            </select>
+            <input type="text" id="notify-uid" placeholder="Enter User UID" class="ios-input hidden">
+            <input type="text" id="notify-title" placeholder="Notification Title" class="ios-input" required>
+            <textarea id="notify-msg" placeholder="Message" class="ios-input h-24" required></textarea>
+            <button type="submit" class="ios-btn ios-btn-primary w-full py-3 bg-[#007AFF] text-white">Send Notification</button>
+          </form>
+        </div>
+        <div id="notification-history" class="mt-4 ios-card p-4">
+          <h3 class="font-bold mb-2">Recent Notifications Sent</h3>
+          <div id="notify-history-list" class="space-y-2 text-sm text-gray-500"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Room ID Distribution Modal -->
-  <div id="roomModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
-    <div class="ios-card p-6 w-full max-w-md mx-4">
-      <h3 class="font-bold mb-3">🎮 Distribute Room Credentials</h3>
-      <p class="text-sm text-gray-500 mb-4" id="room-tournament-title"></p>
-      <input type="text" id="room-id" placeholder="Room ID" class="ios-input mb-3" required>
-      <input type="text" id="room-pass" placeholder="Room Password" class="ios-input mb-4" required>
+  <!-- Modals -->
+  <!-- Wallet Adjust Modal -->
+  <div id="walletModal" class="modal">
+    <div class="ios-card p-5 w-full max-w-sm mx-4">
+      <h3 class="font-bold mb-2">💰 Adjust User Wallet</h3>
+      <p id="wallet-modal-user" class="text-xs text-gray-500 mb-3"></p>
+      <input type="number" id="wallet-amount" placeholder="Amount (+ to add, - to deduct)" class="ios-input mb-3">
       <div class="flex gap-2">
-        <button onclick="sendRoomCredentials()" class="ios-btn ios-btn-primary flex-1 py-2">Send to Players</button>
-        <button onclick="closeRoomModal()" class="ios-btn bg-gray-300 flex-1 py-2">Cancel</button>
+        <button onclick="confirmWalletAdjust()" class="ios-btn ios-btn-success flex-1 py-2">Confirm</button>
+        <button onclick="closeWalletModal()" class="ios-btn bg-gray-300 flex-1 py-2">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Room ID Modal -->
+  <div id="roomModal" class="modal">
+    <div class="ios-card p-5 w-full max-w-sm mx-4">
+      <h3 class="font-bold mb-2">🎮 Distribute Room Credentials</h3>
+      <p id="room-modal-title" class="text-xs text-gray-500 mb-3"></p>
+      <input type="text" id="room-id" placeholder="Room ID" class="ios-input mb-2">
+      <input type="text" id="room-pass" placeholder="Room Password" class="ios-input mb-2">
+      <select id="room-map" class="ios-input mb-2"><option>Bermuda</option><option>Kalahari</option><option>Purgatory</option></select>
+      <button onclick="sendRoomCredentials()" class="ios-btn ios-btn-primary w-full py-2">Send to Players</button>
+      <button onclick="closeRoomModal()" class="ios-btn w-full py-2 mt-2 bg-gray-200">Close</button>
     </div>
   </div>
 
   <script>
     // =========================
-    // Firebase Config (USE SAME AS USER APP)
+    // Firebase Config (REPLACE WITH YOURS)
     // =========================
-const firebaseConfig = {
+   const firebaseConfig = {
   apiKey: "AIzaSyAPEWF1t1YKFG2-hrzY7IWBaumM4xyLwOs",
   authDomain: "hamro-tournament-09.firebaseapp.com",
   databaseURL: "https://hamro-tournament-09-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -222,540 +235,367 @@ const firebaseConfig = {
     const db = firebase.firestore();
 
     let currentAdmin = null;
-    let selectedTournamentForRoom = null;
+    let selectedUserId = null;
+    let selectedTournamentId = null;
 
     // =========================
     // Helpers
     // =========================
     function showToast(msg, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.style.background = type === 'error' ? '#FF3B30' : '#34C759';
-      toast.textContent = msg;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2500);
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.style.background = type === 'error' ? '#FF3B30' : '#34C759';
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2500);
     }
 
     function formatTime(ts) {
       if (!ts) return 'N/A';
-      const date = ts.toDate ? ts.toDate() : new Date(ts);
-      return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
+    window.switchTab = (tab) => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active', 'bg-[#007AFF]', 'text-white'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      const targetBtn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+      targetBtn.classList.add('active', 'bg-[#007AFF]', 'text-white');
+      document.getElementById(`tab-${tab}`).classList.remove('hidden');
+      if (tab === 'users') loadUsers();
+      if (tab === 'tournaments') loadManageTournaments();
+      if (tab === 'deposits') loadTransactions('deposits', 'pending');
+      if (tab === 'withdrawals') loadTransactions('withdrawals', 'pending');
+      if (tab === 'notifications') loadNotifyHistory();
+    };
+
+    // Tab & Filter Listeners
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => window.switchTab(btn.dataset.tab);
+    });
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.onclick = () => {
+        btn.parentElement.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('active', 'bg-[#007AFF20]', 'text-[#007AFF]', 'font-semibold'); b.classList.add('bg-gray-200'); });
+        btn.classList.add('active', 'bg-[#007AFF20]', 'text-[#007AFF]', 'font-semibold');
+        btn.classList.remove('bg-gray-200');
+        const collection = btn.closest('#tab-deposits') ? 'deposits' : 'withdrawals';
+        loadTransactions(collection, btn.dataset.status);
+      };
+    });
+
+    document.getElementById('notify-target').onchange = (e) => {
+      document.getElementById('notify-uid').classList.toggle('hidden', e.target.value !== 'specific');
+    };
+
     // =========================
-    // Auth & Access Control
+    // Auth & Access
     // =========================
     document.getElementById('btn-admin-login').onclick = async () => {
       const email = document.getElementById('admin-email').value;
       const pass = document.getElementById('admin-pass').value;
-      const errorEl = document.getElementById('login-error');
-      errorEl.classList.add('hidden');
-      
+      const errEl = document.getElementById('login-error');
+      errEl.classList.add('hidden');
       try {
         const cred = await auth.signInWithEmailAndPassword(email, pass);
-        const userDoc = await db.collection('users').doc(cred.user.uid).get();
-        const userData = userDoc.data();
-        
-        if (!userData || userData.role !== 'admin') {
+        const uDoc = await db.collection('users').doc(cred.user.uid).get();
+        if (!uDoc.exists || uDoc.data().role !== 'admin') {
           await auth.signOut();
-          errorEl.textContent = 'Access denied: Admin role required';
-          errorEl.classList.remove('hidden');
+          errEl.textContent = 'Access denied: Admin role required';
+          errEl.classList.remove('hidden');
           return;
         }
-        
         currentAdmin = cred.user;
-        document.getElementById('admin-email-display').textContent = email;
         document.getElementById('admin-login').classList.add('hidden');
         document.getElementById('admin-dashboard').classList.remove('hidden');
-        
-        // Load stats & default tab
         loadStats();
-        loadDeposits();
+        showToast('Welcome, Admin!');
       } catch (e) {
-        errorEl.textContent = e.message;
-        errorEl.classList.remove('hidden');
+        errEl.textContent = e.message;
+        errEl.classList.remove('hidden');
       }
     };
 
-    document.getElementById('btn-logout').onclick = () => {
-      auth.signOut();
-      location.reload();
-    };
+    document.getElementById('btn-logout').onclick = () => auth.signOut().then(() => location.reload());
 
-    // Check auth state on load
     auth.onAuthStateChanged(async (user) => {
       if (user) {
-        const userDoc = await db.collection('users').doc(user.uid).get();
-        if (userDoc.data()?.role === 'admin') {
+        const uDoc = await db.collection('users').doc(user.uid).get();
+        if (uDoc.data()?.role === 'admin') {
           currentAdmin = user;
           document.getElementById('admin-login').classList.add('hidden');
           document.getElementById('admin-dashboard').classList.remove('hidden');
-          document.getElementById('admin-email-display').textContent = user.email;
           loadStats();
-          loadDeposits();
-        } else {
-          auth.signOut();
-          showToast('Admin access required', 'error');
-        }
+        } else auth.signOut();
       }
     });
 
     // =========================
-    // Tab Navigation
-    // =========================
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('.tab-btn').forEach(b => {
-          b.classList.remove('active', 'bg-[#007AFF]', 'text-white');
-          b.classList.add('bg-gray-200');
-        });
-        btn.classList.add('active', 'bg-[#007AFF]', 'text-white');
-        btn.classList.remove('bg-gray-200');
-        
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
-        
-        if (btn.dataset.tab === 'withdrawals') loadWithdrawals();
-        if (btn.dataset.tab === 'tournaments') loadTournamentsAdmin();
-        if (btn.dataset.tab === 'results') loadResults();
-      };
-    });
-
-    // =========================
-    // Stats Loading
+    // Stats
     // =========================
     async function loadStats() {
-      try {
-        const [usersSnap, depositsSnap, withdrawalsSnap, tournamentsSnap] = await Promise.all([
-          db.collection('users').count().get(),
-          db.collection('deposits').where('status', '==', 'pending').count().get(),
-          db.collection('withdrawals').where('status', '==', 'pending').count().get(),
-          db.collection('tournaments').where('status', 'in', ['upcoming', 'playing']).count().get()
-        ]);
-        document.getElementById('stat-users').textContent = usersSnap.data().count || 0;
-        document.getElementById('stat-deposits').textContent = depositsSnap.data().count || 0;
-        document.getElementById('stat-withdrawals').textContent = withdrawalsSnap.data().count || 0;
-        document.getElementById('stat-tournaments').textContent = tournamentsSnap.data().count || 0;
-      } catch (e) {
-        console.error('Stats error:', e);
-      }
+      const [users, dep, wit, tour] = await Promise.all([
+        db.collection('users').count().get(),
+        db.collection('deposits').where('status', '==', 'pending').count().get(),
+        db.collection('withdrawals').where('status', '==', 'pending').count().get(),
+        db.collection('tournaments').where('status', 'in', ['upcoming', 'playing']).count().get()
+      ]);
+      document.getElementById('stat-users').textContent = users.data().count || 0;
+      document.getElementById('stat-deposits').textContent = dep.data().count || 0;
+      document.getElementById('stat-withdrawals').textContent = wit.data().count || 0;
+      document.getElementById('stat-tournaments').textContent = tour.data().count || 0;
     }
 
     // =========================
-    // Deposits Management
+    // Users Management
     // =========================
-    async function loadDeposits() {
-      const list = document.getElementById('deposits-list');
+    async function loadUsers() {
+      const list = document.getElementById('users-list');
       list.innerHTML = '<div class="spinner"></div>';
-      
       try {
-        const snap = await db.collection('deposits')
-          .where('status', '==', 'pending')
-          .orderBy('createdAt', 'desc')
-          .limit(20)
-          .get();
-        
-        if (snap.empty) {
-          list.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">No pending deposits</p>';
-          return;
-        }
-        
+        const snap = await db.collection('users').orderBy('createdAt', 'desc').limit(50).get();
         list.innerHTML = '';
-        for (const doc of snap.docs) {
-          const d = doc.data();
-          const userDoc = await db.collection('users').doc(d.userId).get();
-          const userData = userDoc.data() || {};
-          
+        if (snap.empty) { list.innerHTML = '<p class="text-center text-gray-500 py-4">No users found</p>'; return; }
+        snap.forEach(doc => {
+          const u = doc.data();
           list.innerHTML += `
             <div class="ios-card p-3 flex justify-between items-center">
-              <div class="flex-1">
-                <div class="font-bold">₹${d.amount}</div>
-                <div class="text-xs text-gray-500">User: ${userData.username || d.userId.slice(0,8)}...</div>
-                <div class="text-xs text-gray-400">Txn: ${d.transactionId}</div>
-                <div class="text-xs text-gray-400">${formatTime(d.createdAt)}</div>
+              <div>
+                <div class="font-bold text-sm">${u.username || u.email}</div>
+                <div class="text-xs text-gray-500">UID: ${doc.id.slice(0,10)}...</div>
+                <div class="text-xs text-green-600">💰 ₹${u.wallet || 0}</div>
               </div>
-              <div class="flex gap-2">
-                <button class="approve-deposit ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg" 
-                        data-id="${doc.id}" data-uid="${d.userId}" data-amt="${d.amount}">✅ Approve</button>
-                <button class="reject-deposit ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg" 
-                        data-id="${doc.id}">❌ Reject</button>
-              </div>
+              <button onclick="openWalletModal('${doc.id}', '${u.username || u.email}')" class="ios-btn ios-btn-primary px-3 py-1 text-xs rounded-lg">Adjust Wallet</button>
             </div>`;
-        }
-        
-        // Attach event listeners
-        document.querySelectorAll('.approve-deposit').forEach(btn => {
-          btn.onclick = async () => {
-            if (!confirm(`Approve ₹${btn.dataset.amt} deposit for user ${btn.dataset.uid.slice(0,8)}?`)) return;
-            try {
-              // Update deposit status
-              await db.collection('deposits').doc(btn.dataset.id).update({ status: 'approved' });
-              
-              // Update user wallet
-              await db.collection('users').doc(btn.dataset.uid).update({ 
-                wallet: firebase.firestore.FieldValue.increment(parseInt(btn.dataset.amt)),
-                totalDeposited: firebase.firestore.FieldValue.increment(parseInt(btn.dataset.amt))
-              });
-              
-              // Log transaction
-              await db.collection('transactions').add({
-                userId: btn.dataset.uid,
-                amount: parseInt(btn.dataset.amt),
-                type: 'credit',
-                description: 'Deposit Approved via eSewa',
-                status: 'completed',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              
-              showToast('Deposit approved & wallet updated!');
-              loadDeposits();
-              loadStats();
-            } catch (e) {
-              showToast('Error: ' + e.message, 'error');
-            }
-          };
         });
-        
-        document.querySelectorAll('.reject-deposit').forEach(btn => {
-          btn.onclick = async () => {
-            if (!confirm('Reject this deposit request?')) return;
-            try {
-              await db.collection('deposits').doc(btn.dataset.id).update({ status: 'rejected' });
-              await db.collection('transactions').add({
-                userId: btn.dataset.uid,
-                amount: parseInt(btn.dataset.amt),
-                type: 'credit',
-                description: 'Deposit Rejected',
-                status: 'rejected',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              showToast('Deposit rejected');
-              loadDeposits();
-            } catch (e) {
-              showToast('Error: ' + e.message, 'error');
-            }
-          };
-        });
-      } catch (e) {
-        list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
-      }
+      } catch (e) { list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`; }
     }
 
-    // =========================
-    // Withdrawals Management
-    // =========================
-    async function loadWithdrawals() {
-      const list = document.getElementById('withdrawals-list');
+    document.getElementById('btn-search-user').onclick = async () => {
+      const q = document.getElementById('user-search').value.trim().toLowerCase();
+      const list = document.getElementById('users-list');
       list.innerHTML = '<div class="spinner"></div>';
-      
       try {
-        const snap = await db.collection('withdrawals')
-          .where('status', '==', 'pending')
-          .orderBy('createdAt', 'desc')
-          .limit(20)
-          .get();
-        
-        if (snap.empty) {
-          list.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">No pending withdrawals</p>';
-          return;
-        }
-        
-        list.innerHTML = '';
-        for (const doc of snap.docs) {
-          const w = doc.data();
-          const userDoc = await db.collection('users').doc(w.userId).get();
-          const userData = userDoc.data() || {};
-          
-          list.innerHTML += `
-            <div class="ios-card p-3 flex justify-between items-center">
-              <div class="flex-1">
-                <div class="font-bold">₹${w.amount} → ${w.esewaId}</div>
-                <div class="text-xs text-gray-500">User: ${userData.username || w.userId.slice(0,8)}...</div>
-                <div class="text-xs text-gray-400">${formatTime(w.createdAt)}</div>
-              </div>
-              <div class="flex gap-2">
-                <button class="approve-withdraw ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg" 
-                        data-id="${doc.id}" data-uid="${w.userId}" data-amt="${w.amount}" data-esewa="${w.esewaId}">✅ Paid</button>
-                <button class="reject-withdraw ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg" 
-                        data-id="${doc.id}" data-uid="${w.userId}" data-amt="${w.amount}">❌ Reject</button>
-              </div>
-            </div>`;
-        }
-        
-        document.querySelectorAll('.approve-withdraw').forEach(btn => {
-          btn.onclick = async () => {
-            if (!confirm(`Mark ₹${btn.dataset.amt} as PAID to eSewa ${btn.dataset.esewa}? Remember to send money manually!`)) return;
-            try {
-              await db.collection('withdrawals').doc(btn.dataset.id).update({ status: 'completed' });
-              await db.collection('transactions').add({
-                userId: btn.dataset.uid,
-                amount: parseInt(btn.dataset.amt),
-                type: 'debit',
-                description: 'Withdrawal Completed via eSewa',
-                status: 'completed',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              showToast('Withdrawal marked as paid! ✅ Send money via eSewa now.');
-              loadWithdrawals();
-              loadStats();
-            } catch (e) {
-              showToast('Error: ' + e.message, 'error');
-            }
-          };
-        });
-        
-        document.querySelectorAll('.reject-withdraw').forEach(btn => {
-          btn.onclick = async () => {
-            if (!confirm('Reject & refund this withdrawal?')) return;
-            try {
-              await db.collection('withdrawals').doc(btn.dataset.id).update({ status: 'rejected' });
-              // Refund wallet
-              await db.collection('users').doc(btn.dataset.uid).update({ 
-                wallet: firebase.firestore.FieldValue.increment(parseInt(btn.dataset.amt))
-              });
-              await db.collection('transactions').add({
-                userId: btn.dataset.uid,
-                amount: parseInt(btn.dataset.amt),
-                type: 'credit',
-                description: 'Withdrawal Rejected - Refunded',
-                status: 'completed',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              showToast('Withdrawal rejected & amount refunded');
-              loadWithdrawals();
-            } catch (e) {
-              showToast('Error: ' + e.message, 'error');
-            }
-          };
-        });
-      } catch (e) {
-        list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
-      }
-    }
+        let res;
+        if (q.length > 15) res = await db.collection('users').where(firebase.firestore.FieldPath.documentId(), '==', q).limit(1).get();
+        else res = await db.collection('users').where('email', '==', q).limit(1).get();
+        if (res.empty) { list.innerHTML = '<p class="text-center text-gray-500 py-4">User not found</p>'; return; }
+        const doc = res.docs[0]; const u = doc.data();
+        list.innerHTML = `
+          <div class="ios-card p-4">
+            <div class="font-bold">${u.username}</div>
+            <div class="text-xs text-gray-500">${u.email} | UID: ${doc.id}</div>
+            <div class="grid grid-cols-2 gap-2 mt-2 text-sm">
+              <div>💰 Wallet: ₹${u.wallet}</div>
+              <div>🎮 FF UID: ${u.ffUid || '-'}</div>
+              <div>📱 eSewa: ${u.esewaId || '-'}</div>
+              <div>🏆 Wins: ${u.totalWins || 0}</div>
+            </div>
+            <button onclick="openWalletModal('${doc.id}', '${u.username}')" class="ios-btn ios-btn-primary w-full mt-3 py-2 text-sm">Adjust Wallet</button>
+          </div>`;
+      } catch(e) { list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`; }
+    };
+
+    window.openWalletModal = (uid, name) => { selectedUserId = uid; document.getElementById('wallet-modal-user').textContent = name; document.getElementById('walletModal').classList.add('active'); document.getElementById('wallet-amount').value = ''; };
+    window.closeWalletModal = () => document.getElementById('walletModal').classList.remove('active');
+    window.confirmWalletAdjust = async () => {
+      const amt = parseInt(document.getElementById('wallet-amount').value);
+      if (!amt) return showToast('Enter amount', 'error');
+      try {
+        await db.collection('users').doc(selectedUserId).update({ wallet: firebase.firestore.FieldValue.increment(amt) });
+        await db.collection('transactions').add({ userId: selectedUserId, amount: Math.abs(amt), type: amt > 0 ? 'credit' : 'debit', description: `Admin Wallet Adjustment (${amt > 0 ? 'Added' : 'Deducted'})`, status: 'completed', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        showToast('Wallet updated');
+        closeWalletModal();
+        loadUsers(); loadStats();
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    };
 
     // =========================
-    // Tournament Management
+    // Tournaments
     // =========================
     document.getElementById('create-tournament-form').onsubmit = async (e) => {
       e.preventDefault();
+      const tid = 'HT-' + Date.now().toString(36).toUpperCase();
+      document.getElementById('t-id-display').value = tid;
       try {
         await db.collection('tournaments').add({
+          tournamentId: tid,
           title: document.getElementById('t-title').value,
+          bannerUrl: document.getElementById('t-banner').value,
           entryFee: parseInt(document.getElementById('t-entry').value),
           prizePool: parseInt(document.getElementById('t-prize').value),
           maxPlayers: parseInt(document.getElementById('t-max').value),
-          currentPlayers: 0,
-          gameType: document.getElementById('t-game').value,
-          rules: document.getElementById('t-rules').value || '',
           startTime: new Date(document.getElementById('t-start').value),
           status: 'upcoming',
+          rules: document.getElementById('t-rules').value,
+          prizeDist: document.getElementById('t-prize-dist').value,
+          instructions: document.getElementById('t-instructions').value,
+          prohibited: document.getElementById('t-prohibited').value,
+          tips: document.getElementById('t-tips').value,
+          currentPlayers: 0,
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           createdBy: currentAdmin.uid
         });
         showToast('Tournament created! 🎉');
         e.target.reset();
-        loadTournamentsAdmin();
-        loadStats();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
+        loadManageTournaments(); loadStats();
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
     };
 
-    async function loadTournamentsAdmin() {
-      const list = document.getElementById('tournaments-list');
+    async function loadManageTournaments() {
+      const list = document.getElementById('tournaments-manage-list');
       list.innerHTML = '<div class="spinner"></div>';
-      
       try {
-        const snap = await db.collection('tournaments')
-          .orderBy('createdAt', 'desc')
-          .limit(10)
-          .get();
-        
-        if (snap.empty) {
-          list.innerHTML = '<p class="text-center text-gray-500 text-sm">No tournaments found</p>';
-          return;
-        }
-        
+        const snap = await db.collection('tournaments').orderBy('createdAt', 'desc').limit(10).get();
         list.innerHTML = '';
-        for (const doc of snap.docs) {
+        if (snap.empty) { list.innerHTML = '<p class="text-center text-gray-500">No tournaments</p>'; return; }
+        snap.forEach(doc => {
           const t = doc.data();
-          const statusColor = t.status === 'upcoming' ? 'status-pending' : 
-                             t.status === 'playing' ? 'status-approved' : 'status-rejected';
-          
           list.innerHTML += `
             <div class="ios-card p-3">
               <div class="flex justify-between items-start">
                 <div>
                   <div class="font-bold">${t.title}</div>
-                  <div class="text-xs text-gray-500">${t.gameType} • ₹${t.entryFee} entry</div>
-                  <div class="text-xs text-gray-400">${t.currentPlayers || 0}/${t.maxPlayers} players • ${formatTime(t.startTime)}</div>
+                  <div class="text-xs text-gray-500">ID: ${t.tournamentId} | ${t.currentPlayers}/${t.maxPlayers} joined</div>
                 </div>
-                <span class="${statusColor}">${t.status}</span>
+                <span class="status-${t.status === 'upcoming' ? 'pending' : t.status === 'playing' ? 'completed' : 'rejected'}">${t.status}</span>
               </div>
-              <div class="flex gap-2 mt-3">
-                ${t.status === 'upcoming' ? `
-                  <button class="ios-btn ios-btn-primary px-3 py-1 text-xs rounded-lg" 
-                          onclick="openRoomModal('${doc.id}', '${t.title.replace(/'/g, "\\'")}')">🎮 Room ID</button>
-                  <button class="ios-btn bg-purple-500 text-white px-3 py-1 text-xs rounded-lg" 
-                          onclick="updateTournamentStatus('${doc.id}', 'playing')">▶ Start</button>
-                ` : ''}
-                ${t.status === 'playing' ? `
-                  <button class="ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg" 
-                          onclick="updateTournamentStatus('${doc.id}', 'ended')">✅ End</button>
-                ` : ''}
-                <button class="ios-btn bg-gray-300 px-3 py-1 text-xs rounded-lg">Edit</button>
+              <div class="flex gap-2 mt-2 flex-wrap">
+                ${t.status === 'upcoming' ? `<button onclick="openRoomModal('${doc.id}', '${t.title}')" class="ios-btn ios-btn-primary px-3 py-1 text-xs rounded-lg">🎮 Set Room</button>
+                <button onclick="updateTStatus('${doc.id}', 'playing')" class="ios-btn bg-purple-500 text-white px-3 py-1 text-xs rounded-lg">▶ Start</button>` : ''}
+                ${t.status === 'playing' ? `<button onclick="updateTStatus('${doc.id}', 'ended')" class="ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg">✅ End</button>` : ''}
+                <button onclick="deleteTournament('${doc.id}')" class="ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg">🗑️ Delete</button>
               </div>
             </div>`;
-        }
-      } catch (e) {
-        list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`;
-      }
+        });
+      } catch(e) { list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`; }
     }
 
-    window.updateTournamentStatus = async (tid, status) => {
-      if (!confirm(`Set tournament to "${status}"?`)) return;
-      try {
-        await db.collection('tournaments').doc(tid).update({ status });
-        showToast(`Tournament ${status}!`);
-        loadTournamentsAdmin();
-      } catch (e) {
-        showToast('Error: ' + e.message, 'error');
-      }
-    };
-
-    // =========================
-    // Room ID Distribution
-    // =========================
-    window.openRoomModal = (tid, title) => {
-      selectedTournamentForRoom = tid;
-      document.getElementById('room-tournament-title').textContent = title;
-      document.getElementById('roomModal').classList.remove('hidden');
-      document.getElementById('roomModal').classList.add('flex');
-    };
-
-    window.closeRoomModal = () => {
-      document.getElementById('roomModal').classList.add('hidden');
-      document.getElementById('roomModal').classList.remove('flex');
-      selectedTournamentForRoom = null;
-    };
-
+    window.openRoomModal = (tid, title) => { selectedTournamentId = tid; document.getElementById('room-modal-title').textContent = title; document.getElementById('roomModal').classList.add('active'); };
+    window.closeRoomModal = () => document.getElementById('roomModal').classList.remove('active');
     window.sendRoomCredentials = async () => {
       const roomId = document.getElementById('room-id').value.trim();
       const roomPass = document.getElementById('room-pass').value.trim();
-      if (!roomId || !roomPass) { showToast('Enter Room ID & Password', 'error'); return; }
-      
+      const map = document.getElementById('room-map').value;
+      if (!roomId || !roomPass) return showToast('Enter Room ID & Password', 'error');
       try {
-        // Update tournament with room credentials
-        await db.collection('tournaments').doc(selectedTournamentForRoom).update({
-          roomId, roomPass, roomDistributedAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // Get registered players
-        const regs = await db.collection('tournamentRegistrations')
-          .where('tournamentId', '==', selectedTournamentForRoom)
-          .where('status', '==', 'registered')
-          .get();
-        
-        // Store credentials in each player's registration (user can fetch when joined)
-        for (const reg of regs.docs) {
-          await db.collection('tournamentRegistrations').doc(reg.id).update({
-            roomId, roomPass, roomNotified: false
-          });
-        }
-        
-        showToast(`Room credentials sent to ${regs.size} players!`);
+        await db.collection('tournaments').doc(selectedTournamentId).update({ roomId, roomPass, map, roomDistributedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        const regs = await db.collection('tournamentRegistrations').where('tournamentId', '==', selectedTournamentId).get();
+        const batch = db.batch();
+        regs.forEach(r => { batch.update(r.ref, { roomId, roomPass, map, notified: true }); });
+        await batch.commit();
+        await db.collection('notifications').add({ title: '🎮 Room Ready!', message: `Join now. Map: ${map} | ID: ${roomId} | Pass: ${roomPass}`, target: 'specific_tournament', tournamentId: selectedTournamentId, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        showToast('Room sent to all registered players!');
         closeRoomModal();
-        document.getElementById('room-id').value = '';
-        document.getElementById('room-pass').value = '';
-      } catch (e) {
-        showToast('Error: ' + e.message, 'error');
-      }
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    };
+
+    window.updateTStatus = async (tid, status) => {
+      if (!confirm(`Set tournament to "${status}"?`)) return;
+      await db.collection('tournaments').doc(tid).update({ status });
+      showToast(`Tournament ${status}`);
+      loadManageTournaments(); loadStats();
+    };
+
+    window.deleteTournament = async (tid) => {
+      if (!confirm('Delete this tournament permanently?')) return;
+      await db.collection('tournaments').doc(tid).delete();
+      showToast('Tournament deleted');
+      loadManageTournaments(); loadStats();
     };
 
     // =========================
-    // User Search
+    // Deposits & Withdrawals
     // =========================
-    document.getElementById('btn-search-user').onclick = async () => {
-      const query = document.getElementById('user-search').value.trim();
-      if (!query) return;
-      const result = document.getElementById('user-result');
-      result.innerHTML = '<div class="spinner"></div>';
-      
+    async function loadTransactions(collection, statusFilter) {
+      const listId = collection === 'deposits' ? 'deposits-list' : 'withdrawals-list';
+      const list = document.getElementById(listId);
+      list.innerHTML = '<div class="spinner"></div>';
       try {
-        let userDoc;
-        if (query.includes('@')) {
-          const q = await db.collection('users').where('email', '==', query).limit(1).get();
-          userDoc = q.docs[0];
-        } else if (/^[a-zA-Z0-9]{28}$/.test(query)) {
-          userDoc = await db.collection('users').doc(query).get();
-        } else {
-          const q = await db.collection('users').where('username', '==', query).limit(1).get();
-          userDoc = q.docs[0];
-        }
-        
-        if (!userDoc?.exists) { 
-          result.innerHTML = '<p class="text-red-500 text-sm">User not found</p>'; 
-          return; 
-        }
-        
-        const u = userDoc.data();
-        result.innerHTML = `
-          <div class="ios-card p-4">
-            <div class="font-bold">${u.username}</div>
-            <div class="text-sm text-gray-500">${u.email}</div>
-            <div class="grid grid-cols-2 gap-2 text-sm mt-3">
-              <div>💰 Wallet: ₹${u.wallet || 0}</div>
-              <div>🎮 FF UID: ${u.ffUid || '-'}</div>
-              <div>📱 eSewa: ${u.esewaId || '-'}</div>
-              <div>🏆 Wins: ${u.totalWins || 0}</div>
-            </div>
-            <div class="mt-3 flex gap-2">
-              <button class="ios-btn ios-btn-primary px-3 py-1 text-xs rounded-lg" 
-                      onclick="adjustWallet('${userDoc.id}', '${u.username}')">💰 Adjust Wallet</button>
-              <button class="ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg">⚠️ Ban User</button>
-            </div>
-          </div>`;
-      } catch (e) { 
-        result.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`; 
-      }
-    };
-
-    window.adjustWallet = async (uid, username) => {
-      const amount = prompt(`Adjust wallet for ${username}:\nEnter positive to add, negative to deduct`);
-      if (!amount) return;
-      const amt = parseInt(amount);
-      if (isNaN(amt)) { showToast('Invalid amount', 'error'); return; }
-      
-      try {
-        await db.collection('users').doc(uid).update({ 
-          wallet: firebase.firestore.FieldValue.increment(amt)
+        let q = db.collection(collection);
+        if (statusFilter !== 'all') q = q.where('status', '==', statusFilter);
+        const snap = await q.orderBy('createdAt', 'desc').limit(20).get();
+        list.innerHTML = '';
+        if (snap.empty) { list.innerHTML = '<p class="text-center text-gray-500 py-4">No records found</p>'; return; }
+        snap.forEach(doc => {
+          const d = doc.data();
+          const isDep = collection === 'deposits';
+          const actionBtns = d.status === 'pending' ? `
+            <button onclick="processTransaction('${collection}', '${doc.id}', '${d.userId}', ${d.amount}, 'approved')" class="ios-btn ios-btn-success px-3 py-1 text-xs rounded-lg">✅ Approve</button>
+            <button onclick="processTransaction('${collection}', '${doc.id}', '${d.userId}', ${d.amount}, 'rejected')" class="ios-btn ios-btn-danger px-3 py-1 text-xs rounded-lg">❌ Reject</button>
+          ` : `<span class="text-xs text-gray-400">${d.status}</span>`;
+          
+          list.innerHTML += `
+            <div class="ios-card p-3 flex justify-between items-center">
+              <div class="flex-1">
+                <div class="font-bold">₹${d.amount} ${isDep ? '' : `→ ${d.esewaId || 'eSewa'}`}</div>
+                <div class="text-xs text-gray-500">${isDep ? `Txn: ${d.transactionId}` : `User: ${d.userId.slice(0,8)}`}</div>
+                <div class="text-xs text-gray-400">${formatTime(d.createdAt)}</div>
+              </div>
+              <div class="flex gap-2">${actionBtns}</div>
+            </div>`;
         });
-        await db.collection('transactions').add({
-          userId: uid,
-          amount: Math.abs(amt),
-          type: amt > 0 ? 'credit' : 'debit',
-          description: `Admin Adjustment: ${amt > 0 ? 'Added' : 'Deducted'} by admin`,
-          status: 'completed',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        showToast(`Wallet adjusted by ₹${amt}`);
-      } catch (e) {
-        showToast('Error: ' + e.message, 'error');
-      }
-    };
-
-    // =========================
-    // Results Verification (Placeholder)
-    // =========================
-    async function loadResults() {
-      const list = document.getElementById('results-list');
-      list.innerHTML = '<p class="text-sm text-gray-500">Result submission feature coming soon!</p>';
-      // Future: Load pending result submissions from 'matchResults' collection
+      } catch(e) { list.innerHTML = `<p class="text-red-500 text-sm">Error: ${e.message}</p>`; }
     }
 
-    // Initialize
+    window.processTransaction = async (col, docId, uid, amt, status) => {
+      if (!confirm(`${status === 'approved' ? 'Approve' : 'Reject'} ₹${amt}?`)) return;
+      try {
+        await db.collection(col).doc(docId).update({ status });
+        if (col === 'deposits' && status === 'approved') {
+          await db.collection('users').doc(uid).update({ wallet: firebase.firestore.FieldValue.increment(amt), totalDeposited: firebase.firestore.FieldValue.increment(amt) });
+          await db.collection('transactions').add({ userId: uid, amount: amt, type: 'credit', description: 'Deposit Approved', status: 'completed', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        if (col === 'deposits' && status === 'rejected') {
+          await db.collection('transactions').add({ userId: uid, amount: amt, type: 'credit', description: 'Deposit Rejected', status: 'rejected', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        if (col === 'withdrawals' && status === 'approved') {
+          await db.collection('transactions').add({ userId: uid, amount: amt, type: 'debit', description: 'Withdrawal Completed', status: 'completed', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        if (col === 'withdrawals' && status === 'rejected') {
+          await db.collection('users').doc(uid).update({ wallet: firebase.firestore.FieldValue.increment(amt) });
+          await db.collection('transactions').add({ userId: uid, amount: amt, type: 'credit', description: 'Withdrawal Rejected - Refunded', status: 'completed', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        showToast(`${status === 'approved' ? 'Approved' : 'Rejected'} & wallet updated!`);
+        const activeBtn = document.querySelector(`#${col === 'deposits' ? 'tab-deposits' : 'tab-withdrawals'} .filter-btn.active`);
+        loadTransactions(col, activeBtn?.dataset.status || 'pending');
+        loadStats();
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    };
+
+    // =========================
+    // Notifications
+    // =========================
+    document.getElementById('notify-form').onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const target = document.getElementById('notify-target').value;
+        await db.collection('notifications').add({
+          title: document.getElementById('notify-title').value,
+          message: document.getElementById('notify-msg').value,
+          target,
+          targetUid: target === 'specific' ? document.getElementById('notify-uid').value : null,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          sentBy: currentAdmin.uid
+        });
+        showToast('Notification sent successfully! 🔔');
+        e.target.reset();
+        loadNotifyHistory();
+      } catch(e) { showToast('Error: ' + e.message, 'error'); }
+    };
+
+    async function loadNotifyHistory() {
+      const list = document.getElementById('notify-history-list');
+      const snap = await db.collection('notifications').orderBy('createdAt', 'desc').limit(5).get();
+      list.innerHTML = '';
+      snap.forEach(doc => {
+        const n = doc.data();
+        list.innerHTML += `<div class="border-b border-gray-100 pb-2 pt-1"><div class="font-semibold">${n.title}</div><div class="text-gray-500">${n.message.slice(0, 40)}... • ${formatTime(n.createdAt)}</div></div>`;
+      });
+    }
+
+    // Close modals on outside click
     document.addEventListener('click', (e) => {
-      if (e.target === document.getElementById('roomModal')) closeRoomModal();
+      if (e.target.classList.contains('modal')) e.target.classList.remove('active');
     });
   </script>
 </body>
